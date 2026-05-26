@@ -1,0 +1,351 @@
+/* ============================================================
+   ShellMind v0.2.0 — Admin CSS
+   Full-width chat + floating PiP preview
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── 1. WP ADMIN HEIGHT CHAIN ──────────────────────────── */
+html, body                { overflow: hidden !important; height: 100% !important; }
+#wpwrap                   { height: 100% !important; }
+#wpcontent                { height: calc(100% - 32px) !important; padding: 0 !important; overflow: hidden !important; }
+#wpbody                   { height: 100% !important; overflow: hidden !important; }
+#wpbody-content           { height: 100% !important; overflow: hidden !important; padding-bottom: 0 !important; }
+.wrap                     { height: 100% !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
+#wpfooter                 { display: none !important; }
+.update-nag, .notice, .notice-warning,
+.error, .is-dismissible   { display: none !important; }
+
+/* ── 2. DESIGN TOKENS ──────────────────────────────────── */
+:root {
+  --bg:    #000;
+  --bg1:   #080808;
+  --bg2:   #0d0d0d;
+  --bg3:   #141414;
+  --bg4:   #1c1c1c;
+  --line:  #1e1e1e;
+  --line2: #282828;
+  --green: #00ff88;
+  --green2:#00cc6a;
+  --cyan:  #00d4ff;
+  --yellow:#f5c518;
+  --red:   #ff4444;
+  --txt:   #e0e0e0;
+  --txt2:  #666;
+  --txt3:  #333;
+  --mono:  'JetBrains Mono', monospace;
+  --ui:    'Inter', system-ui, sans-serif;
+  --r:     5px;
+  --r2:    10px;
+}
+
+/* ── 3. APP SHELL ──────────────────────────────────────── */
+.sm-app {
+  height: 100%; display: flex; flex-direction: column;
+  background: var(--bg); color: var(--txt);
+  font-family: var(--ui); font-size: 13px; overflow: hidden;
+  position: relative; /* anchor for PiP */
+}
+
+/* ── 4. TOP BAR ────────────────────────────────────────── */
+.sm-topbar {
+  flex-shrink: 0; height: 42px;
+  display: flex; align-items: center; gap: 12px; padding: 0 18px;
+  background: var(--bg1); border-bottom: 1px solid var(--line);
+}
+.sm-brand { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.sm-brand b { color: var(--green); font-weight: 600; }
+.sm-ver { font-family: var(--mono); font-size: 9px; color: var(--txt3);
+          padding: 1px 6px; border: 1px solid var(--line2); border-radius: 100px; }
+
+.sm-tb-meta { display: flex; gap: 6px; flex: 1; }
+.sm-tpill   { font-family: var(--mono); font-size: 10px; padding: 2px 8px;
+              border-radius: 100px; border: 1px solid var(--line2); color: var(--txt2); }
+.sm-tpill--site { color: rgba(0,212,255,.6); border-color: rgba(0,212,255,.15); }
+
+.sm-tb-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.sm-online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+.sm-online-lbl { font-size: 11px; color: var(--txt2); }
+.sm-warn-link  { font-size: 11px; color: var(--yellow); text-decoration: none; }
+.sm-warn-link:hover { color: #fff; }
+
+.sm-tb-btn {
+  width: 26px; height: 26px; border-radius: var(--r);
+  background: transparent; border: 1px solid var(--line2);
+  color: var(--txt2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+}
+.sm-tb-btn:hover   { background: var(--bg3); color: var(--txt); }
+.sm-tb-btn--xs     { width: 20px; height: 20px; }
+.sm-tb-btn--active { background: var(--bg3); color: var(--green); border-color: rgba(0,255,136,.3); }
+.sm-tb-btn.spin svg { animation: spin .6s linear infinite; }
+
+/* ── 5. CHAT ZONE (full width) ─────────────────────────── */
+.sm-chatzone {
+  flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+}
+
+/* ── 6. FEED ───────────────────────────────────────────── */
+.sm-feed {
+  flex: 1; overflow-y: auto; padding: 28px 20%; min-height: 0;
+  display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth;
+}
+.sm-feed::-webkit-scrollbar { width: 3px; }
+.sm-feed::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 2px; }
+
+/* Welcome */
+.sm-welcome { text-align: center; padding: 32px 10px; max-width: 500px; margin: auto; animation: fadeUp .35s ease; }
+.sm-welcome-hex { margin-bottom: 14px; opacity: .5; }
+.sm-welcome h2  { font-size: 18px; font-weight: 500; margin: 0 0 10px; }
+.sm-welcome p   { font-size: 13px; color: var(--txt2); line-height: 1.65; margin: 0 0 22px; }
+.sm-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 420px; margin: auto; }
+.sm-chip  { font-family: var(--ui); font-size: 12px; text-align: left; padding: 9px 13px;
+            cursor: pointer; background: var(--bg2); border: 1px solid var(--line);
+            border-radius: var(--r2); color: var(--txt2); transition: all .12s; }
+.sm-chip:hover { background: var(--bg3); color: var(--txt); border-color: var(--line2); }
+
+/* Messages */
+.sm-msg { display: flex; flex-direction: column; animation: fadeUp .2s ease; max-width: 780px; }
+.sm-msg--user  { align-self: flex-end; align-items: flex-end; }
+.sm-msg--claude { align-self: flex-start; align-items: flex-start; }
+.sm-msg--sys   { align-self: center; align-items: center; }
+
+.sm-lbl { font-size: 9px; font-weight: 600; letter-spacing: .8px;
+          text-transform: uppercase; margin-bottom: 4px; padding: 0 2px; }
+.sm-msg--user .sm-lbl   { color: rgba(0,212,255,.45); }
+.sm-msg--claude .sm-lbl { color: rgba(0,255,136,.45); }
+
+.sm-bubble { padding: 10px 15px; border-radius: var(--r2); line-height: 1.65;
+             font-size: 13px; word-break: break-word; }
+.sm-msg--user .sm-bubble {
+  max-width: 560px; background: var(--bg2);
+  border: 1px solid rgba(0,212,255,.15);
+  border-radius: var(--r2) 3px var(--r2) var(--r2); color: var(--cyan);
+}
+.sm-msg--claude .sm-bubble {
+  background: var(--bg1); border: 1px solid var(--line);
+  border-radius: 3px var(--r2) var(--r2) var(--r2); color: var(--txt);
+  white-space: pre-wrap;
+}
+.sm-msg--sys .sm-bubble {
+  background: transparent; border: 1px dashed var(--line2);
+  color: var(--txt3); font-size: 11px; padding: 6px 14px; border-radius: var(--r);
+}
+.sm-bubble code { font-family: var(--mono); font-size: 11.5px;
+                  background: rgba(255,255,255,.06); padding: 1px 5px;
+                  border-radius: 3px; color: var(--green2); }
+.sm-bubble pre  { background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r);
+                  padding: 10px 12px; margin: 8px 0; overflow-x: auto; font-size: 12px; }
+.sm-bubble pre code { background: none; padding: 0; }
+
+.sm-usage { font-family: var(--mono); font-size: 9px; color: var(--txt3); margin-top: 4px; padding: 0 2px; }
+
+/* Typing */
+.sm-typing { display: flex; gap: 4px; align-items: center; padding: 10px 14px;
+             background: var(--bg1); border: 1px solid var(--line);
+             border-radius: 3px var(--r2) var(--r2) var(--r2); }
+.sm-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); opacity:.4; animation: bounce .9s infinite; }
+.sm-dot:nth-child(2) { animation-delay:.18s; }
+.sm-dot:nth-child(3) { animation-delay:.36s; }
+
+/* ── 7. EDIT CARD ──────────────────────────────────────── */
+.sm-editcard {
+  display: none; flex-direction: column; background: var(--bg1);
+  border-top: 1px solid var(--line2); max-height: 46vh; flex-shrink: 0; overflow: hidden;
+  animation: slideUp .22s ease;
+}
+.sm-editcard--open { display: flex; }
+
+.sm-ec-header { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+                border-bottom: 1px solid var(--line); flex-shrink: 0; color: var(--txt2); font-size: 11px; }
+.sm-ec-file  { font-family: var(--mono); font-size: 10px; color: var(--cyan); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-ec-tabs  { display: flex; gap: 2px; }
+.sm-ectab    { font-family: var(--ui); font-size: 10px; font-weight: 500; padding: 2px 9px;
+               background: transparent; border: 1px solid transparent; border-radius: var(--r);
+               color: var(--txt2); cursor: pointer; text-transform: uppercase; letter-spacing: .4px; transition: all .1s; }
+.sm-ectab--on { background: var(--bg3); border-color: var(--line2); color: var(--txt); }
+
+.sm-ec-desc { font-size: 11px; color: var(--txt2); padding: 7px 14px; border-bottom: 1px solid var(--line); flex-shrink: 0; font-style: italic; line-height: 1.4; }
+.sm-ec-code { flex: 1; overflow-y: auto; font-family: var(--mono); font-size: 11px; line-height: 1.65; }
+.sm-ec-code::-webkit-scrollbar { width: 2px; }
+.sm-ec-code::-webkit-scrollbar-thumb { background: var(--line2); }
+
+/* Diff lines */
+.sm-dl    { display: grid; grid-template-columns: 38px 38px 16px 1fr; min-height: 18px; }
+.sm-dl--s { color: var(--txt3); }
+.sm-dl--a { background: rgba(0,255,136,.07); color: #4dffaa; }
+.sm-dl--r { background: rgba(255,68,68,.07); color: #ff8080; }
+.sm-dl--sep { grid-column:1/-1; padding:2px 14px; font-size:9px; color:var(--txt3); background:var(--bg3); }
+.sm-dn    { text-align:right; padding:0 6px; color:var(--txt3); font-size:9px; border-right:1px solid var(--line); user-select:none; }
+.sm-dl--a .sm-dn { color:#009944; } .sm-dl--r .sm-dn { color:#993333; }
+.sm-dg    { text-align:center; user-select:none; font-weight:700; color:var(--txt3); }
+.sm-dl--a .sm-dg { color:var(--green); } .sm-dl--r .sm-dg { color:var(--red); }
+.sm-dt    { padding:0 10px; white-space:pre; overflow:hidden; }
+
+.sm-fullpre { font-family:var(--mono); font-size:11px; line-height:1.65; color:var(--txt); padding:12px 14px; margin:0; white-space:pre; display:none; }
+.sm-fullpre--on { display:block; }
+
+.sm-ec-actions { display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid var(--line); background:var(--bg2); flex-shrink:0; }
+.sm-ec-status  { font-size:11px; color:var(--txt2); flex:1; }
+.sm-ec-status.ok   { color:var(--green); } .sm-ec-status.err  { color:var(--red); } .sm-ec-status.warn { color:var(--yellow); }
+
+.sm-ec-btn { font-family:var(--ui); font-size:12px; font-weight:600; padding:7px 14px; border-radius:var(--r); border:1px solid transparent; cursor:pointer; transition:all .12s; white-space:nowrap; }
+.sm-ec-btn:disabled { opacity:.35; cursor:not-allowed; }
+.sm-ec-btn--publish   { background:var(--green); color:#000; border-color:var(--green); }
+.sm-ec-btn--publish:hover:not(:disabled)   { background:#33ffaa; box-shadow:0 0 12px rgba(0,255,136,.3); }
+.sm-ec-btn--overwrite { background:rgba(245,197,24,.08); color:var(--yellow); border-color:rgba(245,197,24,.25); }
+.sm-ec-btn--overwrite:hover:not(:disabled) { background:rgba(245,197,24,.15); }
+.sm-ec-btn--reject    { background:transparent; color:var(--txt2); border-color:var(--line2); }
+.sm-ec-btn--reject:hover:not(:disabled)    { color:var(--red); border-color:rgba(255,68,68,.3); }
+
+/* ── 8. INPUT BAR ──────────────────────────────────────── */
+.sm-inputbar { padding: 12px 20% 8px; background: var(--bg1); border-top: 1px solid var(--line); flex-shrink: 0; }
+.sm-input-inner { display:flex; align-items:flex-end; gap:8px; background:var(--bg2);
+                  border:1px solid var(--line2); border-radius:var(--r2);
+                  padding:8px 8px 8px 14px; transition:border-color .15s; }
+.sm-input-inner:focus-within { border-color:rgba(0,212,255,.25); box-shadow:0 0 0 2px rgba(0,212,255,.05); }
+.sm-input { flex:1; font-family:var(--ui); font-size:13px; color:var(--txt); background:transparent;
+            border:none; outline:none; resize:none; min-height:20px; max-height:90px; line-height:1.5; padding:0; }
+.sm-input::placeholder { color:var(--txt3); }
+.sm-send-btn { width:32px; height:32px; border-radius:var(--r); background:var(--green); border:none;
+               cursor:pointer; display:flex; align-items:center; justify-content:center;
+               color:#000; flex-shrink:0; transition:all .12s; }
+.sm-send-btn:hover    { background:#33ffaa; box-shadow:0 0 10px rgba(0,255,136,.35); }
+.sm-send-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+/* ── 9. TOKEN BAR ──────────────────────────────────────── */
+.sm-tokens { display:flex; align-items:center; gap:8px; padding:4px 20% 5px;
+             background:var(--bg1); border-top:1px solid var(--line);
+             font-family:var(--mono); font-size:9.5px; color:var(--txt3); flex-shrink:0; }
+.sm-tokens b     { color:var(--green2); font-weight:500; }
+.sm-tsep         { color:var(--line2); }
+.sm-tokens-link  { color:rgba(0,212,255,.5); text-decoration:none; margin-left:auto;
+                   border:1px solid rgba(0,212,255,.12); padding:1px 8px; border-radius:100px;
+                   font-size:9px; transition:opacity .12s; }
+.sm-tokens-link:hover { color:var(--cyan); }
+.sm-tokens-reset { font-family:var(--mono); font-size:10px; background:transparent;
+                   border:1px solid var(--line2); color:var(--txt3); padding:1px 5px;
+                   border-radius:var(--r); cursor:pointer; transition:all .12s; }
+.sm-tokens-reset:hover { color:var(--txt2); }
+
+/* ── 10. FLOATING PiP WINDOW ───────────────────────────── */
+.sm-pip {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 400px;
+  height: 280px;
+  background: var(--bg1);
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+  display: none;                /* hidden by default */
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 99999;
+  transition: width .25s ease, height .25s ease, opacity .2s ease, transform .2s ease;
+  resize: both;
+}
+.sm-pip--visible { display: flex; animation: fadeUp .25s ease; }
+.sm-pip--expanded { width: 720px; height: 460px; }
+
+.sm-pip-bar {
+  flex-shrink: 0; height: 34px;
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  background: var(--bg2); border-bottom: 1px solid var(--line);
+  cursor: move; user-select: none;
+  border-radius: 12px 12px 0 0;
+}
+.sm-pip-title { font-family: var(--mono); font-size: 10px; color: var(--txt2);
+                display: flex; align-items: center; gap: 6px; flex: 1; }
+.sm-pip-controls { display: flex; align-items: center; gap: 4px; }
+
+.sm-pip-btn { width: 22px; height: 22px; border-radius: 4px; background: transparent;
+              border: 1px solid var(--line2); color: var(--txt2); cursor: pointer;
+              display: flex; align-items: center; justify-content: center; transition: all .12s; }
+.sm-pip-btn:hover { background: var(--bg3); color: var(--txt); }
+.sm-pip-btn.spin svg { animation: spin .6s linear infinite; }
+
+.sm-pip-devices { display: flex; background: var(--bg3); border: 1px solid var(--line2); border-radius: 4px; }
+.sm-pipd        { font-family: var(--mono); font-size: 9px; font-weight: 600; width: 22px; height: 22px;
+                  background: transparent; border: none; color: var(--txt2); cursor: pointer;
+                  display: flex; align-items: center; justify-content: center; transition: all .1s; border-radius: 4px; }
+.sm-pipd:hover  { background: var(--bg4); color: var(--txt); }
+.sm-pipd--on    { background: var(--bg4); color: var(--txt); }
+
+.sm-pip-frame {
+  flex: 1; position: relative; background: #fff; overflow: hidden; border-radius: 0 0 12px 12px;
+}
+#sm-iframe { width: 100%; height: 100%; border: none; background: #fff; transition: width .25s; transform-origin: top left; }
+
+.sm-pip-loader {
+  position: absolute; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .3s; pointer-events: none;
+}
+.sm-pip-loader.gone { opacity: 0; pointer-events: none; }
+
+.sm-spin { width: 22px; height: 22px; border: 2px solid var(--line2); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; }
+
+.sm-pub-flash {
+  position: absolute; top: 14px; left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  background: var(--green); color: #000; font-family: var(--ui);
+  font-weight: 600; font-size: 11px; padding: 6px 16px;
+  border-radius: 100px; display: flex; align-items: center; gap: 6px;
+  opacity: 0; pointer-events: none; z-index: 10;
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.sm-pub-flash--on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── 11. SETTINGS / BACKUPS ────────────────────────────── */
+.sm-app--scroll { overflow-y: auto !important; height: auto !important; min-height: 100%; }
+.sm-page  { max-width: 600px; padding: 32px 24px; display:flex; flex-direction:column; gap:16px; }
+.sm-card  { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r2); padding:20px; }
+.sm-card--warn { border-color:rgba(255,68,68,.2); }
+.sm-card h3 { font-size:13px; font-weight:600; margin:0 0 6px; }
+.sm-card p  { font-size:12px; color:var(--txt2); margin:0 0 12px; line-height:1.6; }
+.sm-card p a { color:var(--cyan); text-decoration:none; }
+.sm-frow   { display:flex; gap:8px; align-items:center; }
+.sm-finput { flex:1; font-family:var(--mono); font-size:12px; padding:8px 12px; background:var(--bg2); border:1px solid var(--line2); border-radius:var(--r); color:var(--txt); outline:none; }
+.sm-finput:focus { border-color:var(--green2); }
+.sm-btn    { font-family:var(--ui); font-size:12px; font-weight:600; padding:8px 16px; border-radius:var(--r); border:1px solid transparent; cursor:pointer; transition:all .12s; }
+.sm-btn--g { background:var(--green); color:#000; border-color:var(--green); }
+.sm-btn--g:hover { background:#33ffaa; }
+.sm-fstatus { font-size:11px; margin:8px 0 0; }
+.sm-cpath { display:block; font-family:var(--mono); font-size:10px; color:rgba(0,212,255,.6); margin-bottom:8px; }
+.sm-ul    { margin:0; padding:0 0 0 16px; }
+.sm-ul li { font-size:12px; color:var(--txt2); line-height:2.2; }
+.sm-ul code { font-family:var(--mono); color:var(--green2); font-size:11px; }
+.sm-bwrap   { padding:24px; }
+.sm-table   { width:100%; border-collapse:collapse; font-size:12px; }
+.sm-table th { text-align:left; padding:7px 12px; color:var(--txt2); border-bottom:1px solid var(--line); font-weight:500; font-size:10px; text-transform:uppercase; letter-spacing:.4px; }
+.sm-table td { padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.sm-table tr:hover td { background:var(--bg2); }
+.sm-table .tfn { font-family:var(--mono); font-size:10px; color:rgba(0,212,255,.65); }
+.sm-table .tfs { color:var(--txt3); }
+.sm-loading { color:var(--txt2); font-size:12px; padding:24px 0; }
+
+/* ── 12. ANIMATIONS ────────────────────────────────────── */
+@keyframes fadeUp  { from{opacity:0;transform:translateY(5px);}  to{opacity:1;transform:translateY(0);} }
+@keyframes slideUp { from{opacity:0;transform:translateY(8px);}  to{opacity:1;transform:translateY(0);} }
+@keyframes spin    { to{transform:rotate(360deg);} }
+@keyframes bounce  { 0%,80%,100%{transform:translateY(0);opacity:.4;} 40%{transform:translateY(-4px);opacity:1;} }
+
+/* ── 13. SYNTAX HIGHLIGHT ──────────────────────────────── */
+.hl-k{color:#c792ea;} .hl-s{color:#c3e88d;} .hl-n{color:#82aaff;}
+.hl-c{color:#4a6272;font-style:italic;} .hl-v{color:#f07178;}
+
+/* SSE tool-status indicator */
+.sm-tool-status {
+  display: inline-block;
+  padding: 3px 8px;
+  margin: 4px 0;
+  background: rgba(0,255,136,.08);
+  border: 1px solid rgba(0,255,136,.2);
+  border-radius: 4px;
+  color: var(--green, #00ff88);
+  font-size: 11px;
+  font-family: monospace;
+  opacity: .85;
+}
