@@ -119,6 +119,8 @@ class ShellMind_REST_API {
 
         // Set SSE headers  this kills all output buffers
         ShellMind_Claude_API::sse_headers();
+        @set_time_limit( 120 );
+        @ignore_user_abort( true );
 
         $claude = new ShellMind_Claude_API();
         $claude->stream_chat( $messages );
