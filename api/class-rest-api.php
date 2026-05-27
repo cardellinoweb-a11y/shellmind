@@ -65,6 +65,13 @@ class ShellMind_REST_API {
             'permission_callback' => [ $this, 'only_admin' ],
         ] );
 
+
+        register_rest_route( $ns, '/generate-image', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'handle_generate_image' ],
+            'permission_callback' => [ $this, 'only_admin' ],
+        ] );
+
         register_rest_route( $ns, '/settings', [
             'methods'             => [ 'GET', 'POST' ],
             'callback'            => [ $this, 'handle_settings' ],
@@ -250,4 +257,23 @@ class ShellMind_REST_API {
         $entry = date( 'Y-m-d H:i:s' ) . " | {$user} | {$action} | " . wp_json_encode( $data ) . "\n";
         file_put_contents( $log, $entry, FILE_APPEND | LOCK_EX );
     }
+
+    public function handle_generate_image( WP_REST_Request $req ) {
+        $prompt      = $req->get_param( 'prompt' );
+        $description = $req->get_param( 'description' ) ?? '';
+
+        if ( empty( $prompt ) ) {
+            return new WP_Error( 'bad_request', 'prompt required.', [ 'status' => 400 ] );
+        }
+
+        $claude = new ShellMind_Claude_API();
+        $result = $claude->call_replicate_public( [ 'prompt' => $prompt, 'description' => $description ] );
+
+        if ( isset( $result['error'] ) ) {
+            return new WP_Error( 'replicate_error', $result['error'], [ 'status' => 500 ] );
+        }
+
+        return rest_ensure_response( $result );
+    }
+
 }

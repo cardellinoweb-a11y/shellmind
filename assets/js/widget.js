@@ -1,606 +1,776 @@
-/* ShellMind Widget v0.4.0 — Dual mode: Visitor + Designer + Live Preview Engine */
+/* ShellMind Widget v0.5.0 — Designer Panel Mode + Live Preview */
 (function () {
-  'use strict';
-  if (typeof SMWidget === 'undefined') return;
+'use strict';
+if (typeof SMWidget === 'undefined') return;
 
-  /* ── SVGs ──────────────────────────────────────────── */
-  const BRAIN = `<svg width="22" height="22" viewBox="0 0 80 80" fill="none">
-    <circle cx="40" cy="16" r="3.5" fill="#4dd9ff" opacity=".9"/>
-    <circle cx="20" cy="28" r="3.5" fill="#4dd9ff" opacity=".9"/>
-    <circle cx="60" cy="28" r="3.5" fill="#4dd9ff" opacity=".9"/>
-    <circle cx="12" cy="44" r="3.5" fill="#4dd9ff" opacity=".8"/>
-    <circle cx="40" cy="42" r="3.5" fill="#4dd9ff"/>
-    <circle cx="68" cy="44" r="3.5" fill="#4dd9ff" opacity=".8"/>
-    <circle cx="24" cy="60" r="3.5" fill="#4dd9ff" opacity=".9"/>
-    <circle cx="56" cy="60" r="3.5" fill="#4dd9ff" opacity=".9"/>
-    <circle cx="40" cy="68" r="3" fill="#4dd9ff" opacity=".7"/>
-    <line x1="40" y1="16" x2="20" y2="28" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="40" y1="16" x2="60" y2="28" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="40" y1="16" x2="40" y2="42" stroke="#4dd9ff" stroke-width="1" opacity=".3"/>
-    <line x1="20" y1="28" x2="12" y2="44" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="20" y1="28" x2="40" y2="42" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
-    <line x1="60" y1="28" x2="68" y2="44" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="60" y1="28" x2="40" y2="42" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
-    <line x1="12" y1="44" x2="24" y2="60" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="68" y1="44" x2="56" y2="60" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="40" y1="42" x2="24" y2="60" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
-    <line x1="40" y1="42" x2="56" y2="60" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
-    <line x1="24" y1="60" x2="40" y2="68" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="56" y1="60" x2="40" y2="68" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
-    <line x1="24" y1="60" x2="56" y2="60" stroke="#4dd9ff" stroke-width="1" opacity=".25"/>
-  </svg>`;
-  const SEND = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+/* ── SVGs ──────────────────────────────────────────── */
+const BRAIN = `<svg width="20" height="20" viewBox="0 0 80 80" fill="none">
+<circle cx="40" cy="16" r="3.5" fill="#4dd9ff" opacity=".9"/>
+<circle cx="20" cy="28" r="3.5" fill="#4dd9ff" opacity=".9"/>
+<circle cx="60" cy="28" r="3.5" fill="#4dd9ff" opacity=".9"/>
+<circle cx="12" cy="44" r="3.5" fill="#4dd9ff" opacity=".8"/>
+<circle cx="40" cy="42" r="3.5" fill="#4dd9ff"/>
+<circle cx="68" cy="44" r="3.5" fill="#4dd9ff" opacity=".8"/>
+<circle cx="24" cy="60" r="3.5" fill="#4dd9ff" opacity=".9"/>
+<circle cx="56" cy="60" r="3.5" fill="#4dd9ff" opacity=".9"/>
+<circle cx="40" cy="68" r="3" fill="#4dd9ff" opacity=".7"/>
+<line x1="40" y1="16" x2="20" y2="28" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="40" y1="16" x2="60" y2="28" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="40" y1="16" x2="40" y2="42" stroke="#4dd9ff" stroke-width="1" opacity=".3"/>
+<line x1="20" y1="28" x2="12" y2="44" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="20" y1="28" x2="40" y2="42" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
+<line x1="60" y1="28" x2="68" y2="44" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="60" y1="28" x2="40" y2="42" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
+<line x1="12" y1="44" x2="24" y2="60" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="68" y1="44" x2="56" y2="60" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="40" y1="42" x2="24" y2="60" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
+<line x1="40" y1="42" x2="56" y2="60" stroke="#4dd9ff" stroke-width="1" opacity=".35"/>
+<line x1="24" y1="60" x2="40" y2="68" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="56" y1="60" x2="40" y2="68" stroke="#4dd9ff" stroke-width="1.2" opacity=".5"/>
+<line x1="24" y1="60" x2="56" y2="60" stroke="#4dd9ff" stroke-width="1" opacity=".25"/>
+</svg>`;
+const SEND = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
 
-  /* ── State ─────────────────────────────────────────── */
-  const S = {
-    visitorMsgs:  [],
-    designerMsgs: [],
-    busy:    false,
-    designer: false,
-    edit:    null,
-  };
+/* ── State ──────────────────────────────────────────── */
+const S = {
+  visitor: { msgs: [], busy: false },
+  designer: { msgs: [], busy: false, edit: null, preview: null },
+  mode: 'visitor', // 'visitor' | 'designer'
+  isAdmin: SMWidget.isAdmin === '1',
+  sesIn: 0, sesTot: 0,
+};
 
-  const isAdmin = !!SMWidget.isAdmin;
+/* ── ETA helper ─────────────────────────────────────── */
+const ETA = {
+  _t: null, _start: 0, _label: '',
+  _estimates: {
+    default: 8,
+    logo: 15, imagen: 15, image: 15,
+    css: 6, color: 5, fuente: 6, font: 6,
+    menu: 8, navigation: 8,
+    texto: 5, text: 5, titulo: 5,
+    plugin: 20, instalar: 20,
+  },
+  guess(msg) {
+    const m = msg.toLowerCase();
+    for (const [k,v] of Object.entries(this._estimates)) {
+      if (m.includes(k)) return v;
+    }
+    return this._estimates.default;
+  },
+  start(label, secs) {
+    this._label = label;
+    this._start = Date.now();
+    this._total = secs * 1000;
+    const bar = document.getElementById('smw-progress');
+    const fill = bar && bar.querySelector('.smw-progress-fill');
+    const lbl  = bar && bar.querySelector('.smw-progress-task');
+    const eta  = bar && bar.querySelector('.smw-progress-eta');
+    if (!bar) return;
+    bar.classList.add('smw-active');
+    if (lbl) lbl.textContent = label;
+    if (fill) { fill.classList.remove('smw-determinate'); }
+    if (eta) eta.textContent = '~' + secs + 's';
+    clearInterval(this._t);
+    this._t = setInterval(() => {
+      const elapsed = Date.now() - this._start;
+      const rem = Math.max(0, Math.round((this._total - elapsed) / 1000));
+      if (eta) eta.textContent = rem > 0 ? '~' + rem + 's' : '✓';
+    }, 500);
+  },
+  stop() {
+    clearInterval(this._t);
+    const bar = document.getElementById('smw-progress');
+    if (bar) bar.classList.remove('smw-active');
+  }
+};
 
-  /* ── Build DOM ─────────────────────────────────────── */
-  const root = document.createElement('div');
-  root.id = 'smw-root';
-  root.innerHTML = `
-    <button id="smw-btn" aria-label="Abrir chat Claude IA">
-      <div id="smw-btn-brain">${BRAIN}</div>
-      <div id="smw-btn-label">
-        <div id="smw-btn-title">Claude IA</div>
-        <div id="smw-btn-sub">Asistente inteligente</div>
+/* ── Live Preview ───────────────────────────────────── */
+const Preview = {
+  _styleTag: null,
+  _pending: null,
+
+  apply(cssContent, description) {
+    if (!this._styleTag) {
+      this._styleTag = document.createElement('style');
+      this._styleTag.id = 'smw-live-preview';
+      document.head.appendChild(this._styleTag);
+    }
+    this._styleTag.textContent = cssContent;
+    this._pending = { type: 'css', content: cssContent, description };
+    this._showBar(description);
+  },
+
+  applyHTML(selector, html, description) {
+    this._pending = { type: 'html', selector, html, description };
+    const el = document.querySelector(selector);
+    if (el) {
+      this._pending._original = el.outerHTML;
+      el.outerHTML = html;
+    }
+    this._showBar(description);
+  },
+
+  _showBar(desc) {
+    const bar = document.getElementById('smw-preview-bar');
+    const lbl = bar && bar.querySelector('.smw-preview-task');
+    if (!bar) return;
+    bar.classList.add('smw-visible');
+    if (lbl) lbl.textContent = desc || 'Vista previa activa';
+  },
+
+  reject() {
+    if (this._styleTag) { this._styleTag.textContent = ''; }
+    if (this._pending && this._pending.type === 'html' && this._pending._original) {
+      const el = document.querySelector(this._pending.selector);
+      if (el) el.outerHTML = this._pending._original;
+    }
+    this._pending = null;
+    const bar = document.getElementById('smw-preview-bar');
+    if (bar) bar.classList.remove('smw-visible');
+  },
+
+  clear() {
+    this._pending = null;
+    const bar = document.getElementById('smw-preview-bar');
+    if (bar) bar.classList.remove('smw-visible');
+  }
+};
+
+/* ── Build DOM ──────────────────────────────────────── */
+function buildDOM() {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+<div id="smw-btn" role="button" aria-label="ShellMind Designer" tabindex="0">
+  <div id="smw-btn-brain">${BRAIN}</div>
+  <div id="smw-btn-label">
+    <span id="smw-btn-title">ShellMind</span>
+    <span id="smw-btn-sub">Diseñador IA</span>
+  </div>
+  <div id="smw-btn-dot"></div>
+  <div id="smw-badge"></div>
+</div>
+
+<div id="smw-overlay">
+  <div id="smw-dialog" role="dialog" aria-modal="true" aria-label="ShellMind Diseñador">
+
+    <div id="smw-header">
+      <div class="smw-header-top">
+        <div id="smw-header-brain">${BRAIN}</div>
+        <div id="smw-header-info">
+          <div id="smw-header-name">ShellMind</div>
+          <div id="smw-header-site">${SMWidget.siteName}</div>
+        </div>
+        <div class="smw-header-actions">
+          <button id="smw-mode-btn" title="Cambiar modo">🎨 Diseñador</button>
+          <button id="smw-close" aria-label="Cerrar">✕</button>
+        </div>
       </div>
-      <div id="smw-btn-dot"></div>
-      <div id="smw-badge"></div>
-    </button>
+      <div id="smw-designer-badge">⬡ modo diseñador</div>
+    </div>
 
-    <div id="smw-overlay" role="dialog" aria-modal="true">
-      <div id="smw-dialog">
+    <div id="smw-progress">
+      <div class="smw-progress-label">
+        <span class="smw-progress-task">Procesando…</span>
+        <span class="smw-progress-eta"></span>
+      </div>
+      <div class="smw-progress-bar"><div class="smw-progress-fill"></div></div>
+    </div>
 
-        <div id="smw-header">
-          <div class="smw-header-top">
-            <div id="smw-header-brain">${BRAIN}</div>
-            <div id="smw-header-info">
-              <div id="smw-header-name">Claude IA</div>
-              <div id="smw-header-site">${SMWidget.siteName}</div>
-            </div>
-            <div class="smw-header-actions">
-              <button id="smw-mode-btn" title="Activar modo diseñador">🎨 Diseñador</button>
-              <button id="smw-close" aria-label="Cerrar">✕</button>
-            </div>
-          </div>
-          <div id="smw-designer-badge">⚡ Modo Diseñador activo</div>
-        </div>
-
-        <div id="smw-messages"></div>
-
-        <div id="smw-editcard">
-          <div class="smw-ec-bar">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:rgba(255,255,255,.3)"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <span id="smw-ec-file" class="smw-ec-filename"></span>
-            <span id="smw-ec-status" class="smw-ec-status"></span>
-            <span id="smw-ec-desc" class="smw-ec-desc"></span>
-            <button id="smw-ec-close" class="smw-ec-x" aria-label="Cerrar">✕</button>
-          </div>
-          <div class="smw-ectabs">
-            <button id="smw-ect-diff" class="smw-ectab smw-ectab--on">Diff</button>
-            <button id="smw-ect-full" class="smw-ectab">Archivo completo</button>
-          </div>
-          <div id="smw-ec-code"></div>
-          <div class="smw-ec-actions">
-            <button id="smw-ea-prev" class="smw-btn-prev" title="Ver preview en el sitio antes de publicar">👁 Preview</button>
-            <button id="smw-ea-pub"  class="smw-btn-pub">▲ Publicar</button>
-            <button id="smw-ea-over" class="smw-btn-over">⚠ Sobrescribir</button>
-            <button id="smw-ea-rej"  class="smw-btn-rej">✕ Rechazar</button>
-          </div>
-        </div>
-
-        <div id="smw-input-area">
-          <textarea id="smw-input" placeholder="Describí el cambio de diseño…" rows="1"></textarea>
-          <button id="smw-send">${SEND}</button>
-        </div>
-
+    <div id="smw-preview-bar">
+      <div class="smw-preview-label"><span class="smw-preview-task">Vista previa</span></div>
+      <div class="smw-preview-actions">
+        <button class="smw-preview-btn smw-preview-btn--pub" id="smw-preview-pub">Publicar</button>
+        <button class="smw-preview-btn smw-preview-btn--rej" id="smw-preview-rej">Descartar</button>
       </div>
     </div>
-  `;
 
-  document.body.appendChild(root);
+    <div id="smw-messages"></div>
 
-  /* ── Refs ──────────────────────────────────────────── */
-  function $(id) { return document.getElementById(id); }
-  const overlay  = $('smw-overlay');
-  const btn      = $('smw-btn');
-  const badge    = $('smw-badge');
-  const feed     = $('smw-messages');
-  const input    = $('smw-input');
-  const sendBtn  = $('smw-send');
-  const editcard = $('smw-editcard');
-  const modeBtn  = $('smw-mode-btn');
-  const desBadge = $('smw-designer-badge');
-
-  /* ── Toggle open/close ─────────────────────────────── */
-  btn.addEventListener('click', () => {
-    overlay.classList.add('smw-open');
-    badge.style.display = 'none';
-    badge.textContent = '0';
-    input.focus();
-  });
-  $('smw-close').addEventListener('click', () => overlay.classList.remove('smw-open'));
-
-  /* ── Designer mode toggle ──────────────────────────── */
-  if (isAdmin) {
-    modeBtn.style.display = 'block';
-    modeBtn.addEventListener('click', () => {
-      S.designer = !S.designer;
-      desBadge.style.display = S.designer ? 'block' : 'none';
-      modeBtn.textContent = S.designer ? '👤 Visitante' : '🎨 Diseñador';
-      input.placeholder = S.designer ? 'Describí el cambio de diseño…' : 'Hacé una pregunta…';
-      if (!S.designer) {
-        closeEditCard();
-        addSys('👤 Modo Visitante activado.');
-      }
-    });
-  }
-
-  /* ── Send ──────────────────────────────────────────── */
-  sendBtn.addEventListener('click', send);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
-
-  function send() {
-    const text = input.value.trim();
-    if (!text || S.busy) return;
-    addBubble('user', text);
-    input.value = '';
-    if (S.designer && isAdmin) {
-      sendDesigner(text);
-    } else {
-      sendVisitor(text);
-    }
-  }
-
-  /* ── Visitor mode ──────────────────────────────────── */
-  function sendVisitor(text) {
-    S.visitorMsgs.push({ role: 'user', content: text });
-    const tid = addTyping(); setBusy(true);
-    fetch(SMWidget.restUrl + 'widget-chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: S.visitorMsgs }),
-    })
-      .then(r => r.json())
-      .then(r => {
-        removeEl(tid);
-        const txt = r.text || r.message || '⚠ Sin respuesta';
-        addBubble('bot', txt);
-        if (r.text) S.visitorMsgs.push({ role: 'assistant', content: r.text });
-        showBadgeIfClosed();
-      })
-      .catch(() => { removeEl(tid); addBubble('bot', '⚠ Error de conexión.'); })
-      .finally(() => setBusy(false));
-  }
-
-  /* ── Designer mode ─────────────────────────────────── */
-  function sendDesigner(text) {
-    S.designerMsgs.push({ role: 'user', content: text });
-    const tid = addTyping(); setBusy(true);
-    fetch(SMWidget.restUrl + 'chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
-      body: JSON.stringify({ messages: S.designerMsgs }),
-    })
-      .then(r => r.json())
-      .then(r => {
-        removeEl(tid);
-        if (r.type === 'message') {
-          addBubble('bot', r.text);
-          S.designerMsgs.push({ role: 'assistant', content: r.text });
-        } else if (r.type === 'pending_edit') {
-          if (r.text) addBubble('bot', r.text);
-          S.edit = r.edit;
-          openEditCard(r.edit);
-        } else if (r.code) {
-          addBubble('bot', '❌ ' + (r.message || r.code));
-        }
-        showBadgeIfClosed();
-      })
-      .catch(e => { removeEl(tid); addBubble('bot', '❌ ' + e.message); })
-      .finally(() => setBusy(false));
-  }
-
-  /* ── Edit card ─────────────────────────────────────── */
-  $('smw-ect-diff').addEventListener('click', () => switchTab('diff'));
-  $('smw-ect-full').addEventListener('click', () => switchTab('full'));
-  $('smw-ec-close').addEventListener('click', closeEditCard);
-  $('smw-ea-prev').addEventListener('click', () => Preview.apply(S.edit));
-  $('smw-ea-pub').addEventListener('click',  () => applyEdit(false));
-  $('smw-ea-over').addEventListener('click', () => {
-    if (confirm('⚠ Sobrescribir sin backup. ¿Continuar?')) applyEdit(true);
-  });
-  $('smw-ea-rej').addEventListener('click', rejectEdit);
-
-  function openEditCard(edit) {
-    $('smw-ec-file').textContent = edit.file;
-    $('smw-ec-desc').textContent = edit.description;
-    setEcStatus('Revisá antes de publicar', '');
-    enableEcBtns(true);
-    $('smw-ea-pub').textContent = '▲ Publicar';
-
-    let pre = $('smw-fullpre-el');
-    if (!pre) { pre = document.createElement('pre'); pre.className = 'smw-fullpre'; pre.id = 'smw-fullpre-el'; $('smw-ec-code').appendChild(pre); }
-    pre.textContent = edit.new_content;
-
-    let dw = $('smw-dlwrap'); if (dw) dw.remove();
-    const ph = document.createElement('div'); ph.id = 'smw-dlwrap';
-    ph.innerHTML = '<div class="smw-dl smw-dl--s"><span class="smw-dn"></span><span class="smw-dn"></span><span class="smw-dg"></span><span class="smw-dt" style="color:rgba(255,255,255,.2)">Calculando diff…</span></div>';
-    $('smw-ec-code').prepend(ph);
-
-    editcard.classList.add('smw-open');
-    switchTab('diff');
-
-    // Aplicar preview automático inmediato
-    Preview.apply(edit);
-
-    fetch(SMWidget.restUrl + 'diff', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
-      body: JSON.stringify({ file: edit.file, new_content: edit.new_content }),
-    })
-      .then(r => r.json())
-      .then(d => renderDiff(d))
-      .catch(() => {});
-  }
-
-  function renderDiff(d) {
-    const wrap = document.createElement('div'); wrap.id = 'smw-dlwrap';
-    if (d.type === 'new_file') {
-      d.lines.forEach((l, i) => wrap.appendChild(mkDl('a', '', i+1, '+', l)));
-    } else {
-      (d.hunks || []).forEach((hunk, hi) => {
-        if (hi > 0) { const s = document.createElement('div'); s.className = 'smw-dl smw-dl--sep'; s.textContent = '···'; wrap.appendChild(s); }
-        hunk.forEach(ln => {
-          const t = ln.type;
-          wrap.appendChild(mkDl(t==='same'?'s':t==='add'?'a':'r',
-            t!=='add'?(ln.old_no||''):'', t!=='remove'?(ln.new_no||''):'',
-            t==='add'?'+':t==='remove'?'-':' ', ln.content));
-        });
-      });
-    }
-    const old = $('smw-dlwrap'); if (old) old.replaceWith(wrap);
-  }
-
-  function mkDl(type, oldN, newN, g, txt) {
-    const d = document.createElement('div'); d.className = `smw-dl smw-dl--${type}`;
-    d.innerHTML = `<span class="smw-dn">${oldN}</span><span class="smw-dn">${newN}</span><span class="smw-dg">${g}</span><span class="smw-dt">${esc(txt??'')}</span>`;
-    return d;
-  }
-
-  function switchTab(tab) {
-    $('smw-ect-diff').classList.toggle('smw-ectab--on', tab==='diff');
-    $('smw-ect-full').classList.toggle('smw-ectab--on', tab==='full');
-    const dw = $('smw-dlwrap'), fp = $('smw-fullpre-el');
-    if (dw) dw.style.display = tab==='diff'?'block':'none';
-    if (fp) fp.classList.toggle('smw-fullpre--on', tab==='full');
-  }
-
-  function closeEditCard() {
-    editcard.classList.remove('smw-open');
-    Preview.revert();
-  }
-
-  function applyEdit(overwrite) {
-    if (!S.edit) return;
-    Preview.revert();
-    enableEcBtns(false); $('smw-ea-pub').textContent = 'Publicando…'; setEcStatus('Guardando…', 'warn');
-    fetch(SMWidget.restUrl + 'apply-edit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
-      body: JSON.stringify({ file: S.edit.file, new_content: S.edit.new_content, overwrite }),
-    })
-      .then(r => r.json())
-      .then(r => {
-        if (!r.success) throw new Error(r.error || 'Error');
-        setEcStatus(overwrite ? '✅ Sobrescrito' : `✅ Publicado · ${r.backup_name}`, 'ok');
-        $('smw-ea-pub').textContent = '✅ Publicado';
-        addBubble('bot', `✅ \`${S.edit.file.split('/').pop()}\` actualizado.`);
-        S.designerMsgs.push({ role: 'assistant', content: `Cambio aplicado: ${S.edit.file}` });
-        S.edit = null;
-      })
-      .catch(e => { setEcStatus('❌ ' + e.message, 'err'); enableEcBtns(true); $('smw-ea-pub').textContent = '▲ Publicar'; });
-  }
-
-  function rejectEdit() {
-    closeEditCard(); S.edit = null;
-    addBubble('bot', '¿Querés que proponga otra solución?');
-    S.designerMsgs.push({ role: 'user', content: 'Rechacé ese cambio. Proponé una alternativa.' });
-  }
-
-  function setEcStatus(t, cls) { const el = $('smw-ec-status'); el.textContent = t; el.className = 'smw-ec-status ' + (cls||''); }
-  function enableEcBtns(on) { [$('smw-ea-pub'),$('smw-ea-over'),$('smw-ea-rej'),$('smw-ea-prev')].forEach(b => { if(b) b.disabled = !on; }); }
-
-  /* ================================================================
-     LIVE PREVIEW ENGINE v2 — Elementor-style, zero server round-trip
-     Soporta: CSS, texto, HTML sections, SVG icons, imágenes
-  ================================================================ */
-  const Preview = {
-    _domUndo:    [],   // [{type, node/el, oldVal/parent/nextSibling}]
-    _active:     false,
-    _pendingImg: [],   // blob URLs a revocar al revertir
-
-    /* Punto de entrada principal */
-    apply(edit) {
-      if (!edit) return;
-      Preview.revert(); // limpiar preview anterior
-
-      const file = (edit.file || '').toLowerCase();
-      const ext  = file.split('.').pop();
-
-      if (ext === 'css') {
-        Preview._applyCSS(edit.new_content, edit.file);
-      } else if (['php','html','htm'].includes(ext)) {
-        Preview._applyHTML(edit);
-      } else if (ext === 'js') {
-        Preview._showUnsupported('JavaScript — preview solo visual no disponible. Revisá el diff y publicá.');
-        return;
-      } else if (['jpg','jpeg','png','gif','svg','webp'].includes(ext)) {
-        Preview._applyImage(edit);
-      } else {
-        // Intentar DOM diff genérico
-        Preview._applyDOMDiff(edit.diff);
-      }
-
-      Preview._active = true;
-      Preview._showBanner(edit);
-    },
-
-    /* ── 1. CSS: inyectar <style> en <head> ──────────────── */
-    _applyCSS(cssText, filename) {
-      let el = document.getElementById('smw-preview-css');
-      if (!el) {
-        el = document.createElement('style');
-        el.id = 'smw-preview-css';
-        document.head.appendChild(el);
-        Preview._domUndo.push({ type: 'style-created', el });
-      } else {
-        Preview._domUndo.push({ type: 'style-content', el, oldVal: el.textContent });
-      }
-      el.textContent = cssText;
-      console.log('[ShellMind Preview] CSS inyectado:', filename);
-    },
-
-    /* ── 2. HTML/PHP: diff quirúrgico + secciones nuevas ─── */
-    _applyHTML(edit) {
-      if (!edit.diff && !edit.new_content) return;
-
-      // Estrategia A: diff quirúrgico línea a línea
-      if (edit.diff) {
-        const applied = Preview._applyDOMDiff(edit.diff);
-        if (applied) return;
-      }
-
-      // Estrategia B: detectar bloques nuevos completos (sección, div, etc.)
-      if (edit.new_content) {
-        Preview._injectHTMLBlock(edit);
-      }
-    },
-
-    /* ── 3. Diff quirúrgico sobre nodos de texto ─────────── */
-    _applyDOMDiff(diff) {
-      if (!diff) return false;
-      const lines   = diff.split('\n');
-      const removed = lines
-        .filter(l => l.startsWith('-') && !l.startsWith('---'))
-        .map(l => l.slice(1).trim())
-        .filter(l => l.length > 3)
-        .join(' ')
-        .replace(/<[^>]*>/g, '')
-        .trim();
-      const added = lines
-        .filter(l => l.startsWith('+') && !l.startsWith('+++'))
-        .map(l => l.slice(1).trim())
-        .filter(l => l.length > 3)
-        .join(' ')
-        .replace(/<[^>]*>/g, '')
-        .trim();
-
-      if (!removed || !added) return false;
-
-      // Buscar nodo de texto que contenga el string removido
-      const walker = document.createTreeWalker(
-        document.body,
-        NodeFilter.SHOW_TEXT,
-        { acceptNode: n => n.parentElement && n.parentElement.id !== 'smw-root' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
-      );
-      let node, found = false;
-      while ((node = walker.nextNode())) {
-        if (node.nodeValue && node.nodeValue.trim().includes(removed.substring(0, 40))) {
-          Preview._domUndo.push({ type: 'text', node, oldVal: node.nodeValue });
-          node.nodeValue = node.nodeValue.replace(removed.substring(0, 40), added.substring(0, 40));
-          found = true;
-          break;
-        }
-      }
-      return found;
-    },
-
-    /* ── 4. Inyectar bloque HTML nuevo (sección, iconos, etc.) ── */
-    _injectHTMLBlock(edit) {
-      // Detectar si es una sección nueva (no modifica existente)
-      const diffLines   = (edit.diff || '').split('\n');
-      const onlyAdded   = diffLines.every(l => !l.startsWith('-') || l.startsWith('---'));
-      const addedHTML   = diffLines
-        .filter(l => l.startsWith('+') && !l.startsWith('+++'))
-        .map(l => l.slice(1))
-        .join('\n');
-
-      if (!addedHTML.trim()) return;
-
-      // Crear el elemento preview en el DOM
-      const wrapper = document.createElement('div');
-      wrapper.id    = 'smw-preview-block';
-      wrapper.setAttribute('data-smw-preview', '1');
-      wrapper.style.cssText = 'outline: 2px dashed #22c55e; outline-offset: 4px; position: relative;';
-
-      // Badge "PREVIEW" sobre el bloque
-      const badge = document.createElement('div');
-      badge.style.cssText = 'position:absolute;top:0;left:0;background:#22c55e;color:#000;font-size:10px;font-weight:700;padding:2px 6px;z-index:9999;font-family:monospace;';
-      badge.textContent = '⚡ PREVIEW';
-      wrapper.appendChild(badge);
-
-      // Parsear el HTML y agregarlo
-      const tmp = document.createElement('div');
-      tmp.innerHTML = addedHTML;
-      Array.from(tmp.children).forEach(child => wrapper.appendChild(child.cloneNode(true)));
-
-      // Insertar al final del main content o del body
-      const mainContent = document.querySelector('main') || document.querySelector('.entry-content') || document.querySelector('#content') || document.body;
-      mainContent.appendChild(wrapper);
-
-      Preview._domUndo.push({ type: 'element', el: wrapper, parent: mainContent });
-      console.log('[ShellMind Preview] Bloque HTML inyectado en', mainContent.tagName);
-    },
-
-    /* ── 5. Imagen: reemplazar src via blob URL ──────────── */
-    _applyImage(edit) {
-      if (!edit.new_content) return;
-      // edit.new_content puede ser base64 o URL
-      const filename = edit.file.split('/').pop();
-
-      // Buscar <img> con ese filename en el src
-      const imgs = document.querySelectorAll('img');
-      imgs.forEach(img => {
-        if (img.src && img.src.includes(filename)) {
-          Preview._domUndo.push({ type: 'img', el: img, oldVal: img.src });
-          // Si new_content es base64
-          if (edit.new_content.startsWith('data:')) {
-            img.src = edit.new_content;
-          } else if (edit.new_content.startsWith('http')) {
-            img.src = edit.new_content;
-          }
-          console.log('[ShellMind Preview] Imagen reemplazada:', filename);
-        }
-      });
-    },
-
-    /* ── 6. Revertir todo ────────────────────────────────── */
-    revert() {
-      // Revocar blob URLs
-      Preview._pendingImg.forEach(url => URL.revokeObjectURL(url));
-      Preview._pendingImg = [];
-
-      // Deshacer cambios DOM en orden inverso
-      const undos = Preview._domUndo.reverse();
-      undos.forEach(u => {
-        try {
-          if (u.type === 'style-created') {
-            u.el.textContent = '';
-          } else if (u.type === 'style-content') {
-            u.el.textContent = u.oldVal;
-          } else if (u.type === 'text') {
-            u.node.nodeValue = u.oldVal;
-          } else if (u.type === 'element') {
-            if (u.el && u.el.parentNode) u.el.parentNode.removeChild(u.el);
-          } else if (u.type === 'img') {
-            u.el.src = u.oldVal;
-          } else if (u.type === 'attr') {
-            u.el.setAttribute(u.attr, u.oldVal);
-          }
-        } catch(e) { console.warn('[ShellMind Preview] Revert error:', e); }
-      });
-
-      Preview._domUndo  = [];
-      Preview._active   = false;
-
-      // Sacar banner
-      const banner = document.getElementById('smw-live-banner');
-      if (banner) banner.remove();
-    },
-
-    /* ── 7. Banner flotante ──────────────────────────────── */
-    _showBanner(edit) {
-      const existing = document.getElementById('smw-live-banner');
-      if (existing) existing.remove();
-
-      const ext    = (edit.file || '').split('.').pop().toLowerCase();
-      const isCSS  = ext === 'css';
-      const isNew  = edit.diff && edit.diff.split('\n').every(l => !l.startsWith('-') || l.startsWith('---'));
-      const typeLabel = isCSS ? '🎨 CSS' : isNew ? '➕ Nueva sección' : '✏️ Contenido';
-
-      const banner = document.createElement('div');
-      banner.id = 'smw-live-banner';
-      banner.style.cssText = `
-        position:fixed;top:0;left:0;right:0;z-index:2147483647;
-        background:#0f172a;color:#fff;padding:10px 20px;
-        display:flex;align-items:center;justify-content:space-between;
-        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-        font-size:13px;border-bottom:2px solid #22c55e;
-        box-shadow:0 2px 16px rgba(0,0,0,.6);
-      `;
-      banner.innerHTML = `
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span style="color:#22c55e;font-weight:700;font-size:14px;">⚡ PREVIEW LOCAL</span>
-          <span style="background:#1e293b;padding:2px 8px;border-radius:4px;font-size:11px;font-family:monospace;">${edit.file.split('/').pop()}</span>
-          <span style="color:#94a3b8;font-size:12px;">${typeLabel} — sin publicar</span>
-        </span>
-        <div style="display:flex;gap:8px;">
-          <button id="smw-lb-pub"  style="background:#22c55e;color:#000;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">▲ Publicar</button>
-          <button id="smw-lb-disc" style="background:#374151;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;">✕ Descartar</button>
+    <div id="smw-editcard">
+      <div class="smw-ec-bar">
+        <span class="smw-ec-file" id="smw-ec-file"></span>
+        <div class="smw-ec-tabs">
+          <button class="smw-ectab smw-ectab--on" id="smw-ect-diff">Diff</button>
+          <button class="smw-ectab" id="smw-ect-full">Full</button>
         </div>
-      `;
-      document.body.appendChild(banner);
+        <button class="smw-ec-xbtn" id="smw-ec-close">✕</button>
+      </div>
+      <div class="smw-ec-desc" id="smw-ec-desc"></div>
+      <div class="smw-ec-code" id="smw-ec-code"></div>
+      <div class="smw-ec-actions">
+        <span class="smw-ec-status" id="smw-ec-status"></span>
+        <button class="smw-ea-btn smw-ea-btn--rej" id="smw-ea-rej">Rechazar</button>
+        <button class="smw-ea-btn smw-ea-btn--over" id="smw-ea-over">Sobrescribir</button>
+        <button class="smw-ea-btn smw-ea-btn--pub" id="smw-ea-pub">Publicar</button>
+      </div>
+    </div>
 
-      document.getElementById('smw-lb-pub').addEventListener('click', () => {
-        banner.remove();
-        Preview.revert();
-        applyEdit(false);
-      });
-      document.getElementById('smw-lb-disc').addEventListener('click', () => {
-        Preview.revert();
-      });
-    },
+    <div id="smw-inputbar">
+      <textarea id="smw-input" rows="1" placeholder="Describí el cambio…" aria-label="Mensaje"></textarea>
+      <button id="smw-send" aria-label="Enviar">${SEND}</button>
+    </div>
 
-    _showUnsupported(msg) {
-      addBubble('bot', '⚠️ ' + msg);
+    <div id="smw-footer">Powered by <b>ShellMind</b> · Claude IA</div>
+  </div>
+</div>`;
+
+  document.body.appendChild(wrap.children[0]); // smw-btn
+  document.body.appendChild(wrap.children[0]); // smw-overlay
+}
+
+/* ── Mode management ────────────────────────────────── */
+function setMode(mode) {
+  S.mode = mode;
+  const overlay = document.getElementById('smw-overlay');
+  const dialog  = document.getElementById('smw-dialog');
+  const modeBtn = document.getElementById('smw-mode-btn');
+  const badge   = document.getElementById('smw-designer-badge');
+  const inp     = document.getElementById('smw-input');
+
+  if (mode === 'designer') {
+    overlay.classList.add('smw-designer-panel');
+    dialog.classList.add('smw-designer');
+    modeBtn && modeBtn.classList.add('smw-designer-on');
+    badge  && badge.classList.add('smw-visible');
+    if (inp) inp.placeholder = 'Describí el cambio de diseño…';
+    // Show panel immediately without hiding page
+    overlay.classList.add('smw-open');
+  } else {
+    overlay.classList.remove('smw-designer-panel');
+    dialog.classList.remove('smw-designer');
+    modeBtn && modeBtn.classList.remove('smw-designer-on');
+    badge  && badge.classList.remove('smw-visible');
+    if (inp) inp.placeholder = 'Escribí tu pregunta…';
+    Preview.reject();
+  }
+  renderMessages();
+}
+
+function openDialog() {
+  const overlay = document.getElementById('smw-overlay');
+  if (S.mode === 'designer') {
+    overlay.classList.add('smw-designer-panel', 'smw-open');
+  } else {
+    overlay.classList.remove('smw-designer-panel');
+    overlay.classList.add('smw-open');
+  }
+  document.getElementById('smw-input') && document.getElementById('smw-input').focus();
+}
+
+function closeDialog() {
+  const overlay = document.getElementById('smw-overlay');
+  if (S.mode === 'designer') {
+    // In designer mode, just hide - keep state
+    overlay.classList.remove('smw-open');
+    setTimeout(() => overlay.classList.remove('smw-designer-panel'), 300);
+  } else {
+    overlay.classList.remove('smw-open');
+  }
+}
+
+/* ── Render messages for current mode ───────────────── */
+function renderMessages() {
+  const box  = document.getElementById('smw-messages');
+  const msgs = S.mode === 'designer' ? S.designer.msgs : S.visitor.msgs;
+  if (!box) return;
+  box.innerHTML = '';
+  if (!msgs.length) {
+    const st = S.mode === 'designer';
+    addSys(st
+      ? '⬡ Modo diseñador activo — describí cualquier cambio visual'
+      : `👋 Hola, soy el asistente IA de <strong>${esc(SMWidget.siteName)}</strong>.\n¿En qué te puedo ayudar hoy?`
+    );
+    return;
+  }
+  msgs.forEach(m => addBubble(m.role, m.content, false));
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ── Send message ───────────────────────────────────── */
+async function sendMsg() {
+  const inp  = document.getElementById('smw-input');
+  const text = inp ? inp.value.trim() : '';
+  if (!text) return;
+  if (inp) { inp.value = ''; autoH(); }
+
+  const st = S.mode === 'designer';
+  const state = st ? S.designer : S.visitor;
+  if (state.busy) return;
+
+  state.msgs.push({ role: 'user', content: text });
+  addBubble('user', text);
+  setBusy(true);
+
+  // Start ETA
+  if (st) ETA.start('Analizando…', ETA.guess(text));
+
+  const typing = addTyping();
+
+  try {
+    if (st) {
+      await streamDesigner(text, typing);
+    } else {
+      await sendVisitor(text, typing);
+    }
+  } catch(e) {
+    removeEl(typing);
+    addBubble('bot', '⚠ Error: ' + e.message);
+  } finally {
+    setBusy(false);
+    ETA.stop();
+  }
+}
+
+/* ── Stream designer (SSE) ──────────────────────────── */
+async function streamDesigner(userText, typingEl) {
+  const msgs = S.designer.msgs.slice(0,-1).map(m => ({ role: m.role, content: m.content }));
+  msgs.push({ role: 'user', content: userText });
+
+  const resp = await fetch(SMWidget.restUrl + 'chat-stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
+    body: JSON.stringify({ messages: msgs })
+  });
+
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+  const reader = resp.body.getReader();
+  const dec    = new TextDecoder();
+  let   text   = '';
+  let   bubble = null;
+  let   editPayload = null;
+
+  removeEl(typingEl);
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = dec.decode(value, { stream: true });
+    for (const line of chunk.split('\n')) {
+      if (!line.startsWith('data:')) continue;
+      const raw = line.slice(5).trim();
+      if (!raw || raw === '[DONE]') continue;
+      let ev;
+      try { ev = JSON.parse(raw); } catch { continue; }
+
+      if (ev.type === 'text') {
+        text += ev.text;
+        ETA.start('Generando respuesta…', 3);
+        if (!bubble) {
+          bubble = addBubble('bot', text, true);
+        } else {
+          const b = bubble.querySelector('.smw-bubble');
+          if (b) b.innerHTML = mdLight(esc(text));
+        }
+        scrollDown();
+      } else if (ev.type === 'tool_use') {
+        ETA.start('Leyendo archivo…', 4);
+      } else         if (ev.type === 'image_generated') {
+          const img = ev.data;
+          if (img && img.url) {
+            const html = '<div class="smw-img-result">'
+              + '<div class="smw-img-label">' + esc(img.description || 'Imagen generada') + '</div>'
+              + '<img src="' + img.url + '" alt="' + esc(img.prompt || '') + '" class="smw-img-preview" />'
+              + '<div class="smw-img-actions">'
+              + '<button class="smw-img-use" data-url="' + img.url + '" data-prompt="' + esc(img.prompt||'') + '"> Usar esta imagen</button>'
+              + '<button class="smw-img-regen" data-prompt="' + esc(img.prompt||'') + '"> Regenerar</button>'
+              + '</div></div>';
+            addBubble('assistant', html, false);
+          }
+          return;
+        }
+
+        if (ev.type === 'edit') {
+        editPayload = ev;
+        ETA.start('Preparando diff…', 2);
+      } else if (ev.type === 'usage') {
+        S.sesIn += ev.input_tokens || 0;
+        S.sesTot += (ev.input_tokens||0) + (ev.output_tokens||0);
+        updateTokenBar();
+      }
+    }
+  }
+
+  if (text) {
+    S.designer.msgs.push({ role: 'assistant', content: text });
+    // Check if response has CSS in a code block - offer live preview
+    const cssMatch = text.match(/```css([\s\S]*?)```/);
+    if (cssMatch) {
+      Preview.apply(cssMatch[1], 'CSS generado por ShellMind');
+    }
+  }
+  if (editPayload) showEditCard(editPayload);
+}
+
+/* ── Send visitor (no stream) ───────────────────────── */
+async function sendVisitor(userText, typingEl) {
+  const msgs = S.visitor.msgs.map(m => ({ role: m.role, content: m.content }));
+  const resp = await fetch(SMWidget.restUrl + 'widget-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: msgs, nonce: SMWidget.nonce })
+  });
+  removeEl(typingEl);
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const data = await resp.json();
+  const reply = data.text || data.message || '';
+  S.visitor.msgs.push({ role: 'assistant', content: reply });
+  addBubble('bot', reply);
+}
+
+/* ── Publish edit ───────────────────────────────────── */
+async function publishEdit(override) {
+  const edit = S.designer.edit;
+  if (!edit) return;
+  const statusEl = document.getElementById('smw-ec-status');
+  const pubBtn   = document.getElementById('smw-ea-pub');
+  const overBtn  = document.getElementById('smw-ea-over');
+  if (pubBtn)  pubBtn.disabled  = true;
+  if (overBtn) overBtn.disabled = true;
+  if (statusEl) { statusEl.className='smw-ec-status'; statusEl.textContent='Publicando…'; }
+
+  ETA.start('Escribiendo archivo…', 5);
+
+  try {
+    const resp = await fetch(SMWidget.restUrl + 'apply-edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
+      body: JSON.stringify({ file: edit.file, new_content: edit.new_content, override: !!override })
+    });
+    const data = await resp.json();
+    ETA.stop();
+    if (data.success) {
+      if (statusEl) { statusEl.className='smw-ec-status ok'; statusEl.textContent='✓ Publicado — backup: '+data.backup_name; }
+      Preview.clear();
+      addSys('✓ Cambio publicado en servidor');
+      setTimeout(() => closeEditCard(), 2000);
+    } else {
+      if (statusEl) { statusEl.className='smw-ec-status err'; statusEl.textContent='Error: '+(data.message||'desconocido'); }
+    }
+  } catch(e) {
+    ETA.stop();
+    if (statusEl) { statusEl.className='smw-ec-status err'; statusEl.textContent='Error: '+e.message; }
+  } finally {
+    if (pubBtn)  pubBtn.disabled  = false;
+    if (overBtn) overBtn.disabled = false;
+  }
+}
+
+/* ── Edit card ──────────────────────────────────────── */
+function showEditCard(ev) {
+  S.designer.edit = ev;
+  const card    = document.getElementById('smw-editcard');
+  const fileEl  = document.getElementById('smw-ec-file');
+  const descEl  = document.getElementById('smw-ec-desc');
+  const statusEl= document.getElementById('smw-ec-status');
+  if (!card) return;
+  if (fileEl)   fileEl.textContent  = ev.file || '';
+  if (descEl)   descEl.textContent  = ev.description || '';
+  if (statusEl) { statusEl.className='smw-ec-status warn'; statusEl.textContent='Pendiente de publicar'; }
+  card.classList.add('smw-open');
+  switchTab('diff');
+
+  // If it's a CSS file, apply live preview
+  if (ev.file && ev.file.endsWith('.css') && ev.new_content) {
+    Preview.apply(ev.new_content, 'Vista previa: ' + ev.file);
+  }
+}
+
+function closeEditCard() {
+  S.designer.edit = null;
+  const card = document.getElementById('smw-editcard');
+  if (card) card.classList.remove('smw-open');
+}
+
+function switchTab(tab) {
+  const diffBtn = document.getElementById('smw-ect-diff');
+  const fullBtn = document.getElementById('smw-ect-full');
+  const codeEl  = document.getElementById('smw-ec-code');
+  const edit    = S.designer.edit;
+  if (!edit || !codeEl) return;
+  if (tab === 'diff') {
+    diffBtn && diffBtn.classList.add('smw-ectab--on');
+    fullBtn && fullBtn.classList.remove('smw-ectab--on');
+    codeEl.innerHTML = renderDiff(edit.diff || []);
+  } else {
+    fullBtn && fullBtn.classList.add('smw-ectab--on');
+    diffBtn && diffBtn.classList.remove('smw-ectab--on');
+    codeEl.innerHTML = '<pre class="smw-fullpre smw-fullpre--on">' + esc(edit.new_content || '') + '</pre>';
+  }
+}
+
+function renderDiff(lines) {
+  if (!lines.length) return '<div style="padding:8px;color:rgba(255,255,255,.3);font-size:10px">Sin cambios</div>';
+  return lines.map(dl => mkDl(dl)).join('');
+}
+function mkDl(dl) {
+  if (dl.type === 'sep') return '<div class="smw-dl smw-dl--sep">@@ ' + esc(dl.context||'') + '</div>';
+  const cls = dl.type==='add' ? 'smw-dl--a' : dl.type==='rem' ? 'smw-dl--r' : 'smw-dl--s';
+  const gl  = dl.type==='add' ? '+' : dl.type==='rem' ? '-' : ' ';
+  return '<div class="smw-dl '+cls+'"><div class="smw-dn">'+(dl.old_line||'')+
+         '</div><div class="smw-dn">'+(dl.new_line||'')+
+         '</div><div class="smw-dg">'+gl+'</div><div class="smw-dt">'+esc(dl.content||'')+'</div></div>';
+}
+
+/* ── Token bar ──────────────────────────────────────── */
+function updateTokenBar() {
+  // stored in sessionStorage for persistence within wp-admin
+  const stored = JSON.parse(sessionStorage.getItem('smw_tokens')||'{"in":0,"out":0}');
+  stored.in  += S.sesIn;
+  stored.out += S.sesTot - S.sesIn;
+  sessionStorage.setItem('smw_tokens', JSON.stringify(stored));
+}
+
+/* ── DOM helpers ────────────────────────────────────── */
+function addBubble(role, content, live) {
+  const box = document.getElementById('smw-messages');
+  if (!box) return null;
+  const div = document.createElement('div');
+  div.className = 'smw-msg smw-msg--' + (role==='user'?'user':'bot');
+  const inner = role==='user'
+    ? '<div class="smw-bubble">'+esc(content)+'</div>'
+    : '<div class="smw-bubble">'+mdLight(esc(content))+'</div>';
+  div.innerHTML = inner;
+  box.appendChild(div);
+  if (!live) scrollDown();
+  return div;
+}
+function addSys(html) {
+  const box = document.getElementById('smw-messages');
+  if (!box) return;
+  const div = document.createElement('div');
+  div.className = 'smw-msg smw-msg--sys';
+  div.innerHTML = '<div class="smw-bubble">'+html+'</div>';
+  box.appendChild(div);
+  scrollDown();
+}
+function addTyping() {
+  const box = document.getElementById('smw-messages');
+  if (!box) return null;
+  const div = document.createElement('div');
+  div.className = 'smw-msg smw-msg--bot';
+  div.innerHTML = '<div class="smw-typing"><div class="smw-dot"></div><div class="smw-dot"></div><div class="smw-dot"></div></div>';
+  box.appendChild(div);
+  scrollDown();
+  return div;
+}
+function scrollDown() {
+  const box = document.getElementById('smw-messages');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+function removeEl(el) { el && el.parentNode && el.parentNode.removeChild(el); }
+function setBusy(v) {
+  const state = S.mode==='designer' ? S.designer : S.visitor;
+  state.busy = v;
+  const inp  = document.getElementById('smw-input');
+  const send = document.getElementById('smw-send');
+  if (inp)  inp.disabled  = v;
+  if (send) send.disabled = v;
+}
+function autoH() {
+  const el = document.getElementById('smw-input');
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function mdLight(s) {
+  return s
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+/* ── Init ───────────────────────────────────────────── */
+
+/*  Live iframe Preview  */
+function showIframePreview(edit) {
+  const overlay = document.getElementById('smw-iframe-overlay');
+  const iframe  = document.getElementById('smw-iframe');
+  if (!overlay || !iframe) return;
+
+  // Load current page in iframe, then inject changes
+  iframe.src = window.location.href.split('#')[0] + '?smw_preview=1&t=' + Date.now();
+  overlay.style.display = 'flex';
+
+  iframe.onload = function() {
+    try {
+      const idoc = iframe.contentDocument || iframe.contentWindow.document;
+      if (!edit) return;
+
+      const file = edit.file || '';
+      const content = edit.new_content || '';
+
+      // CSS file: inject as <style> tag
+      if (file.endsWith('.css')) {
+        const style = idoc.createElement('style');
+        style.id = 'smw-preview-inject';
+        style.textContent = content;
+        const existing = idoc.getElementById('smw-preview-inject');
+        if (existing) existing.remove();
+        idoc.head.appendChild(style);
+        return;
+      }
+
+      // PHP/HTML: try to replace body content if full page
+      if (file.endsWith('.php') || file.endsWith('.html')) {
+        // Apply only visible text/HTML changes via DOM diff highlight
+        idoc.body.insertAdjacentHTML('afterbegin',
+          '<div id="smw-preview-banner" style="position:fixed;top:0;left:0;right:0;z-index:99999;'
+          + 'background:rgba(34,197,94,.9);color:#fff;text-align:center;padding:6px;font-size:13px;font-weight:600;">'
+          + ' PREVIEW: ' + (edit.description || 'Cambio propuesto') + '  Los cambios se aplicarn al publicar'
+          + '</div>'
+        );
+      }
+    } catch(e) {
+      console.warn('ShellMind iframe preview cross-origin:', e);
     }
   };
 
-  /* ── Bubble helpers ────────────────────────────────── */
-  function addBubble(role, text) {
-    const wrap = document.createElement('div'); wrap.className = `smw-msg smw-msg--${role}`;
-    const b = document.createElement('div'); b.className = 'smw-bubble';
-    b.innerHTML = mdLight(text); wrap.appendChild(b);
-    feed.appendChild(wrap); feed.scrollTop = feed.scrollHeight;
-    return wrap;
+  // Wire publish/reject buttons
+  const pubBtn = document.getElementById('smw-iframe-pub');
+  const rejBtn = document.getElementById('smw-iframe-rej');
+
+  if (pubBtn) {
+    pubBtn.onclick = function() {
+      overlay.style.display = 'none';
+      iframe.src = '';
+      // Trigger actual publish
+      const pubEl = document.getElementById('smw-ea-pub');
+      if (pubEl) pubEl.click();
+    };
   }
-  function addSys(text) {
-    const wrap = document.createElement('div'); wrap.className = 'smw-msg smw-msg--sys';
-    const b = document.createElement('div'); b.className = 'smw-bubble'; b.textContent = text;
-    wrap.appendChild(b); feed.appendChild(wrap); feed.scrollTop = feed.scrollHeight;
+  if (rejBtn) {
+    rejBtn.onclick = function() {
+      overlay.style.display = 'none';
+      iframe.src = '';
+    };
   }
-  function addTyping() {
-    const id = 'smwt' + Date.now();
-    const w = document.createElement('div'); w.id = id; w.className = 'smw-msg smw-msg--bot';
-    w.innerHTML = '<div class="smw-typing"><div class="smw-dot"></div><div class="smw-dot"></div><div class="smw-dot"></div></div>';
-    feed.appendChild(w); feed.scrollTop = feed.scrollHeight; return id;
-  }
-  function showBadgeIfClosed() {
-    if (!overlay.classList.contains('smw-open')) {
-      badge.style.display = 'flex';
-      badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+}
+
+/*  Image action handlers (delegated)  */
+document.addEventListener('click', function(e) {
+  // "Usar esta imagen"  insert image URL into chat
+  if (e.target.classList.contains('smw-img-use')) {
+    const url = e.target.getAttribute('data-url');
+    const inp = document.getElementById('smw-input');
+    if (inp && url) {
+      inp.value = 'Insertar esta imagen en la seccin hero: ' + url;
+      inp.focus();
     }
   }
-
-  /* ── Utils ─────────────────────────────────────────── */
-  function removeEl(id) { const e = document.getElementById(id); if (e) e.remove(); }
-  function setBusy(v) { S.busy = v; sendBtn.disabled = v; input.disabled = v; }
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function mdLight(t) {
-    return String(t||'')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>')
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/`([^`]+)`/g,'<code>$1</code>')
-      .replace(/\n/g,'<br>');
+  // "Regenerar"  resend with same prompt
+  if (e.target.classList.contains('smw-img-regen')) {
+    const prompt = e.target.getAttribute('data-prompt');
+    const inp = document.getElementById('smw-input');
+    if (inp && prompt) {
+      inp.value = 'Generar de nuevo: ' + prompt;
+      const sendEl = document.getElementById('smw-send');
+      if (sendEl) sendEl.click();
+    }
   }
+});
+
+function init() {
+  buildDOM();
+
+  const btn      = document.getElementById('smw-btn');
+  const overlay  = document.getElementById('smw-overlay');
+  const closeBtn = document.getElementById('smw-close');
+  const modeBtn  = document.getElementById('smw-mode-btn');
+  const sendBtn  = document.getElementById('smw-send');
+  const inp      = document.getElementById('smw-input');
+  const pubBtn   = document.getElementById('smw-ea-pub');
+  const overBtn  = document.getElementById('smw-ea-over');
+  const rejBtn   = document.getElementById('smw-ea-rej');
+  const diffBtn  = document.getElementById('smw-ect-diff');
+  const fullBtn  = document.getElementById('smw-ect-full');
+  const ecClose  = document.getElementById('smw-ec-close');
+  const prevPub  = document.getElementById('smw-preview-pub');
+  const prevRej  = document.getElementById('smw-preview-rej');
+
+  // Show mode button only for admins
+  if (S.isAdmin && modeBtn) modeBtn.classList.add('smw-visible');
+
+  // Click pill button
+  btn && btn.addEventListener('click', () => {
+    const isOpen = overlay && overlay.classList.contains('smw-open');
+    if (isOpen && S.mode !== 'designer') {
+      closeDialog();
+    } else {
+      if (S.isAdmin && S.mode === 'visitor') {
+        // Admins open in designer mode by default
+        setMode('designer');
+      } else {
+        openDialog();
+      }
+    }
+  });
+
+  // Close button
+  closeBtn && closeBtn.addEventListener('click', closeDialog);
+
+  // Overlay click closes only in visitor mode
+  overlay && overlay.addEventListener('click', e => {
+    if (e.target === overlay && S.mode === 'visitor') closeDialog();
+  });
+
+  // Mode toggle
+  modeBtn && modeBtn.addEventListener('click', () => {
+    const newMode = S.mode === 'designer' ? 'visitor' : 'designer';
+    setMode(newMode);
+    if (newMode === 'designer') {
+      modeBtn.textContent = '🎨 Diseñador';
+    } else {
+      modeBtn.textContent = '💬 Visitante';
+    }
+  });
+
+  // Keyboard
+  inp && inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  });
+  inp && inp.addEventListener('input', autoH);
+  sendBtn && sendBtn.addEventListener('click', sendMsg);
+
+  // Edit card buttons
+  pubBtn  && pubBtn.addEventListener('click',  () => publishEdit(false));
+  overBtn && overBtn.addEventListener('click', () => publishEdit(true));
+  rejBtn  && rejBtn.addEventListener('click',  () => { Preview.reject(); closeEditCard(); addSys('↩ Cambio descartado'); });
+  diffBtn && diffBtn.addEventListener('click', () => switchTab('diff'));
+  fullBtn && fullBtn.addEventListener('click', () => switchTab('full'));
+  ecClose && ecClose.addEventListener('click', () => { Preview.reject(); closeEditCard(); });
+
+  // Preview bar
+  prevPub && prevPub.addEventListener('click', () => {
+    // Publish the pending edit if exists
+    if (S.designer.edit) publishEdit(false);
+    else Preview.clear();
+  });
+  prevRej && prevRej.addEventListener('click', () => Preview.reject());
+
+  // ESC key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && S.mode === 'visitor') closeDialog();
+  });
+
+  // If admin, start in designer mode automatically
+  if (S.isAdmin) {
+    setMode('designer');
+  } else {
+    renderMessages();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
 })();

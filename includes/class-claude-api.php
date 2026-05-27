@@ -44,6 +44,18 @@ class ShellMind_Claude_API {
                 'required' => [ 'file', 'new_content', 'description' ],
             ],
         ],
+        [
+            'name'        => 'generate_image',
+            'description' => 'Generate an image using Replicate (Flux model). Use when the user asks to create, generate or design an image. Returns a URL of the generated image.',
+            'input_schema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'prompt'      => [ 'type' => 'string', 'description' => 'Detailed English prompt describing the image to generate.' ],
+                    'description' => [ 'type' => 'string', 'description' => 'Short description for the user explaining what is being generated.' ],
+                ],
+                'required' => [ 'prompt' ],
+            ],
+        ],
     ];
 
     public function __construct() {
@@ -143,6 +155,18 @@ class ShellMind_Claude_API {
                                 'type'        => 'tool_result',
                                 'tool_use_id' => $id,
                                 'content'     => $fe->list_directory_safe( $input['path'] ),
+                            ];
+                            break;
+
+                        case 'generate_image':
+                            $img_result = $this->call_replicate( $input );
+                            $this->sse_send( 'image_generated', $img_result );
+                            $tool_results[] = [
+                                'type'        => 'tool_result',
+                                'tool_use_id' => $id,
+                                'content'     => isset($img_result['url'])
+                                    ? 'Image generated: ' . $img_result['url']
+                                    : 'Error: ' . ($img_result['error'] ?? 'unknown'),
                             ];
                             break;
 
@@ -661,4 +685,88 @@ Do NOT discuss internal server details, files, or WordPress administration.";
 
         return $messages;
     }
+
+    /* ==============================================================
+       REPLICATE API  Image generation via Flux model
+    ============================================================== */
+    public function call_replicate_public( array $input ) : array { return $this->call_replicate($input); }
+    private function call_replicate( array $input ) : array {
+        $api_key = get_option( 'shellmind_replicate_key', '' );
+        if ( empty( $api_key ) ) {
+            return [ 'error' => 'Replicate API key not set. Go to ShellMind -> Settings.' ];
+        }
+
+        $prompt = $input['prompt'] ?? '';
+        if ( empty( $prompt ) ) return [ 'error' => 'Empty prompt.' ];
+
+        // Use Flux Schnell (fastest, cheapest ~$0.003/img)
+        $model = 'black-forest-labs/flux-schnell';
+        $url   = 'https://api.replicate.com/v1/models/' . $model . '/predictions';
+
+        $body = json_encode([
+            'input' => [
+                'prompt'          => $prompt,
+                'num_outputs'     => 1,
+                'aspect_ratio'    => '16:9',
+                'output_format'   => 'webp',
+                'output_quality'  => 80,
+                'num_inference_steps' => 4,
+            ]
+        ]);
+
+        $ch = curl_init( $url );
+        curl_setopt_array( $ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $body,
+            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Token ' . $api_key,
+                'Content-Type: application/json',
+                'Prefer: wait=30',
+            ],
+        ] );
+
+        $raw = curl_exec( $ch );
+        $err = curl_error( $ch );
+        curl_close( $ch );
+
+        if ( $err ) return [ 'error' => $err ];
+
+        $data = json_decode( $raw, true );
+        if ( ! $data ) return [ 'error' => 'Invalid JSON from Replicate.' ];
+
+        // If status is processing, poll for result
+        if ( isset( $data['urls']['get'] ) && ( $data['status'] === 'processing' || $data['status'] === 'starting' ) ) {
+            $poll_url = $data['urls']['get'];
+            for ( $i = 0; $i < 30; $i++ ) {
+                sleep( 2 );
+                $ch2 = curl_init( $poll_url );
+                curl_setopt_array( $ch2, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 10,
+                    CURLOPT_HTTPHEADER     => [ 'Authorization: Token ' . $api_key ],
+                ] );
+                $raw2 = curl_exec( $ch2 );
+                curl_close( $ch2 );
+                $data = json_decode( $raw2, true );
+                if ( $data && $data['status'] === 'succeeded' ) break;
+                if ( $data && $data['status'] === 'failed' ) {
+                    return [ 'error' => $data['error'] ?? 'Replicate job failed.' ];
+                }
+            }
+        }
+
+        if ( isset( $data['output'] ) ) {
+            $img_url = is_array( $data['output'] ) ? $data['output'][0] : $data['output'];
+            return [
+                'url'         => $img_url,
+                'prompt'      => $prompt,
+                'description' => $input['description'] ?? 'Imagen generada',
+            ];
+        }
+
+        return [ 'error' => 'No output from Replicate. Response: ' . substr($raw, 0, 200) ];
+    }
+
 }
