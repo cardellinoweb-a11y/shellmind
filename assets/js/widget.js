@@ -354,6 +354,12 @@ async function streamDesigner(userText, typingEl) {
       let ev;
       try { ev = JSON.parse(raw); } catch { continue; }
 
+      // Infer type from data shape (server sends {text:"..."} without type field)
+      if (!ev.type) {
+        if (ev.text !== undefined) ev.type = 'text';
+        else if (ev.usage) ev.type = 'usage';
+      }
+
       if (ev.type === 'text') {
         text += ev.text;
         ETA.start('Generando respuesta…', 3);
@@ -398,6 +404,7 @@ async function streamDesigner(userText, typingEl) {
         if (ev.type === 'edit') {
         editPayload = ev;
         ETA.start('Preparando diff…', 2);
+        setTimeout(function() { showEditCard(editPayload); }, 50);
       } else if (ev.type === 'usage') {
         S.sesIn += ev.input_tokens || 0;
         S.sesTot += (ev.input_tokens||0) + (ev.output_tokens||0);
@@ -414,7 +421,7 @@ async function streamDesigner(userText, typingEl) {
       Preview.apply(cssMatch[1], 'CSS generado por ShellMind');
     }
   }
-  if (editPayload) showEditCard(editPayload);
+  // showEditCard called immediately in edit handler above
 }
 
 /* ── Send visitor (no stream) ───────────────────────── */
