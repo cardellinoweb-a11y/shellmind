@@ -404,7 +404,9 @@ async function streamDesigner(userText, typingEl) {
         if (ev.type === 'edit') {
         editPayload = ev;
         ETA.start('Preparando diff…', 2);
-        setTimeout(function() { showEditCard(editPayload); }, 50);
+        console.log('SHELLMIND: edit event received', ev.file);
+        showEditCard(editPayload);
+        setTimeout(function() { showEditCard(editPayload); }, 100);
       } else if (ev.type === 'usage') {
         S.sesIn += ev.input_tokens || 0;
         S.sesTot += (ev.input_tokens||0) + (ev.output_tokens||0);
