@@ -1,4 +1,4 @@
-/* ShellMind Widget v0.3.0 — Dual mode: Visitor + Designer */
+/* ShellMind Widget v0.4.0 — Dual mode: Visitor + Designer + Live Preview Engine */
 (function () {
   'use strict';
   if (typeof SMWidget === 'undefined') return;
@@ -33,11 +33,11 @@
 
   /* ── State ─────────────────────────────────────────── */
   const S = {
-    visitorMsgs:  [],   // visitor mode history
-    designerMsgs: [],   // designer mode history
+    visitorMsgs:  [],
+    designerMsgs: [],
     busy:    false,
-    designer: false,    // is designer mode active?
-    edit:    null,      // pending edit proposal
+    designer: false,
+    edit:    null,
   };
 
   const isAdmin = !!SMWidget.isAdmin;
@@ -76,98 +76,72 @@
 
         <div id="smw-messages"></div>
 
-        <!-- Edit card (designer mode) -->
         <div id="smw-editcard">
           <div class="smw-ec-bar">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:rgba(255,255,255,.3)"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <span class="smw-ec-file" id="smw-ec-file">—</span>
-            <div class="smw-ec-tabs">
-              <button class="smw-ectab smw-ectab--on" id="smw-ect-diff">Diff</button>
-              <button class="smw-ectab" id="smw-ect-full">Full</button>
-            </div>
-            <button class="smw-ec-xbtn" id="smw-ec-close">✕</button>
+            <span id="smw-ec-file" class="smw-ec-filename"></span>
+            <span id="smw-ec-status" class="smw-ec-status"></span>
+            <span id="smw-ec-desc" class="smw-ec-desc"></span>
+            <button id="smw-ec-close" class="smw-ec-x" aria-label="Cerrar">✕</button>
           </div>
-          <div class="smw-ec-desc" id="smw-ec-desc"></div>
-          <div class="smw-ec-code" id="smw-ec-code"></div>
+          <div class="smw-ectabs">
+            <button id="smw-ect-diff" class="smw-ectab smw-ectab--on">Diff</button>
+            <button id="smw-ect-full" class="smw-ectab">Archivo completo</button>
+          </div>
+          <div id="smw-ec-code"></div>
           <div class="smw-ec-actions">
-            <span class="smw-ec-status" id="smw-ec-status">Revisá antes de publicar</span>
-            <button class="smw-ea-btn smw-ea-btn--rej"  id="smw-ea-rej">✕ Rechazar</button>
-            <button class="smw-ea-btn smw-ea-btn--over" id="smw-ea-over">⚠ Sobrescribir</button>
-            <button class="smw-ea-btn smw-ea-btn--pub"  id="smw-ea-pub">▲ Publicar</button>
+            <button id="smw-ea-prev" class="smw-btn-prev" title="Ver preview en el sitio antes de publicar">👁 Preview</button>
+            <button id="smw-ea-pub"  class="smw-btn-pub">▲ Publicar</button>
+            <button id="smw-ea-over" class="smw-btn-over">⚠ Sobrescribir</button>
+            <button id="smw-ea-rej"  class="smw-btn-rej">✕ Rechazar</button>
           </div>
         </div>
 
-        <div id="smw-inputbar">
-          <input id="smw-input" type="text" placeholder="Escribí tu pregunta…" autocomplete="off"/>
+        <div id="smw-input-area">
+          <textarea id="smw-input" placeholder="Describí el cambio de diseño…" rows="1"></textarea>
           <button id="smw-send">${SEND}</button>
         </div>
-        <div id="smw-footer">Powered by <b>ShellMind</b> · Claude IA</div>
+
       </div>
     </div>
   `;
+
   document.body.appendChild(root);
 
   /* ── Refs ──────────────────────────────────────────── */
-  const $ = id => document.getElementById(id);
-  const btn      = $('smw-btn');
+  function $(id) { return document.getElementById(id); }
   const overlay  = $('smw-overlay');
-  const dialog   = $('smw-dialog');
-  const closeBtn = $('smw-close');
-  const modeBtn  = $('smw-mode-btn');
+  const btn      = $('smw-btn');
   const badge    = $('smw-badge');
   const feed     = $('smw-messages');
   const input    = $('smw-input');
   const sendBtn  = $('smw-send');
-  const dbadge   = $('smw-designer-badge');
   const editcard = $('smw-editcard');
+  const modeBtn  = $('smw-mode-btn');
+  const desBadge = $('smw-designer-badge');
 
-  /* ── Init ──────────────────────────────────────────── */
-  // Show designer button only for admins
-  if (isAdmin) {
-    modeBtn.classList.add('smw-visible');
-  }
-
-  // Welcome message
-  addBubble('bot', `👋 Hola, soy el asistente IA de **${SMWidget.siteName}**.\n¿En qué te puedo ayudar hoy?`);
-
-  /* ── Open / Close ──────────────────────────────────── */
-  btn.addEventListener('click', openDialog);
-  closeBtn.addEventListener('click', closeDialog);
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeDialog(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDialog(); });
-
-  function openDialog() {
+  /* ── Toggle open/close ─────────────────────────────── */
+  btn.addEventListener('click', () => {
     overlay.classList.add('smw-open');
     badge.style.display = 'none';
-    badge.textContent = '';
-    setTimeout(() => input.focus(), 300);
-  }
-  function closeDialog() {
-    overlay.classList.remove('smw-open');
-  }
+    badge.textContent = '0';
+    input.focus();
+  });
+  $('smw-close').addEventListener('click', () => overlay.classList.remove('smw-open'));
 
-  /* ── Mode toggle ───────────────────────────────────── */
-  modeBtn.addEventListener('click', toggleDesigner);
-
-  function toggleDesigner() {
-    S.designer = !S.designer;
-
-    if (S.designer) {
-      dialog.classList.add('smw-designer');
-      modeBtn.classList.add('smw-designer-on');
-      modeBtn.textContent = '👤 Visitante';
-      dbadge.classList.add('smw-visible');
-      input.placeholder = 'Decile a Claude qué cambiar…';
-      addSys('⚡ Modo Diseñador activado. Claude puede leer y editar archivos del servidor.');
-    } else {
-      dialog.classList.remove('smw-designer');
-      modeBtn.classList.remove('smw-designer-on');
-      modeBtn.innerHTML = '🎨 Diseñador';
-      dbadge.classList.remove('smw-visible');
-      input.placeholder = 'Escribí tu pregunta…';
-      closeEditCard();
-      addSys('👤 Modo Visitante activado.');
-    }
+  /* ── Designer mode toggle ──────────────────────────── */
+  if (isAdmin) {
+    modeBtn.style.display = 'block';
+    modeBtn.addEventListener('click', () => {
+      S.designer = !S.designer;
+      desBadge.style.display = S.designer ? 'block' : 'none';
+      modeBtn.textContent = S.designer ? '👤 Visitante' : '🎨 Diseñador';
+      input.placeholder = S.designer ? 'Describí el cambio de diseño…' : 'Hacé una pregunta…';
+      if (!S.designer) {
+        closeEditCard();
+        addSys('👤 Modo Visitante activado.');
+      }
+    });
   }
 
   /* ── Send ──────────────────────────────────────────── */
@@ -177,10 +151,8 @@
   function send() {
     const text = input.value.trim();
     if (!text || S.busy) return;
-
     addBubble('user', text);
     input.value = '';
-
     if (S.designer && isAdmin) {
       sendDesigner(text);
     } else {
@@ -192,7 +164,6 @@
   function sendVisitor(text) {
     S.visitorMsgs.push({ role: 'user', content: text });
     const tid = addTyping(); setBusy(true);
-
     fetch(SMWidget.restUrl + 'widget-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -214,13 +185,9 @@
   function sendDesigner(text) {
     S.designerMsgs.push({ role: 'user', content: text });
     const tid = addTyping(); setBusy(true);
-
     fetch(SMWidget.restUrl + 'chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-WP-Nonce': SMWidget.nonce,
-      },
+      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
       body: JSON.stringify({ messages: S.designerMsgs }),
     })
       .then(r => r.json())
@@ -246,6 +213,7 @@
   $('smw-ect-diff').addEventListener('click', () => switchTab('diff'));
   $('smw-ect-full').addEventListener('click', () => switchTab('full'));
   $('smw-ec-close').addEventListener('click', closeEditCard);
+  $('smw-ea-prev').addEventListener('click', () => Preview.apply(S.edit));
   $('smw-ea-pub').addEventListener('click',  () => applyEdit(false));
   $('smw-ea-over').addEventListener('click', () => {
     if (confirm('⚠ Sobrescribir sin backup. ¿Continuar?')) applyEdit(true);
@@ -259,12 +227,10 @@
     enableEcBtns(true);
     $('smw-ea-pub').textContent = '▲ Publicar';
 
-    // Full file tab
     let pre = $('smw-fullpre-el');
     if (!pre) { pre = document.createElement('pre'); pre.className = 'smw-fullpre'; pre.id = 'smw-fullpre-el'; $('smw-ec-code').appendChild(pre); }
     pre.textContent = edit.new_content;
 
-    // Diff placeholder
     let dw = $('smw-dlwrap'); if (dw) dw.remove();
     const ph = document.createElement('div'); ph.id = 'smw-dlwrap';
     ph.innerHTML = '<div class="smw-dl smw-dl--s"><span class="smw-dn"></span><span class="smw-dn"></span><span class="smw-dg"></span><span class="smw-dt" style="color:rgba(255,255,255,.2)">Calculando diff…</span></div>';
@@ -273,7 +239,9 @@
     editcard.classList.add('smw-open');
     switchTab('diff');
 
-    // Load diff
+    // Aplicar preview automático inmediato
+    Preview.apply(edit);
+
     fetch(SMWidget.restUrl + 'diff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
@@ -316,45 +284,15 @@
     if (fp) fp.classList.toggle('smw-fullpre--on', tab==='full');
   }
 
-  function closeEditCard() { editcard.classList.remove('smw-open'); }
-
-  function applyLivePreview() {
-    if (!S.edit || !S.edit.diff) { applyEdit(false); return; }
-    const lines = S.edit.diff.split('\n');
-    const removed = lines.filter(l => l.startsWith('-') && !l.startsWith('---')).map(l => l.slice(1).trim()).join(' ');
-    const added   = lines.filter(l => l.startsWith('+') && !l.startsWith('+++')).map(l => l.slice(1).trim()).join(' ');
-    if (!removed || !added) { applyEdit(false); return; }
-    const originalHTML = document.body.innerHTML;
-    const stripped_removed = removed.replace(/<[^>]*>/g,'').trim();
-    const stripped_added   = added.replace(/<[^>]*>/g,'').trim();
-    let previewApplied = false;
-    if (stripped_removed && document.body.innerHTML.includes(stripped_removed)) {
-      document.body.innerHTML = document.body.innerHTML.replace(stripped_removed, stripped_added);
-      previewApplied = true;
-    }
-    const existing = document.getElementById('smw-live-banner');
-    if (existing) existing.remove();
-    const banner = document.createElement('div');
-    banner.id = 'smw-live-banner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;font-family:sans-serif;font-size:14px;box-shadow:0 2px 12px rgba(0,0,0,0.5);';
-    const msg = previewApplied ? ' Preview en vivo aplicado  confirmar cambio?' : ' Preview no disponible para este cambio  publicar igual?';
-    banner.innerHTML = '<span>' + msg + '</span><div style="display:flex;gap:10px;"><button id="smw-lb-pub" style="background:#22c55e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;"> Publicar definitivamente</button><button id="smw-lb-disc" style="background:#ef4444;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;"> Descartar</button></div>';
-    document.body.appendChild(banner);
-    document.getElementById('smw-lb-pub').addEventListener('click', () => {
-      banner.remove();
-      applyEdit(false);
-    });
-    document.getElementById('smw-lb-disc').addEventListener('click', () => {
-      if (previewApplied) document.body.innerHTML = originalHTML;
-      banner.remove();
-      setEcStatus('Cambio descartado', '');
-    });
+  function closeEditCard() {
+    editcard.classList.remove('smw-open');
+    Preview.revert();
   }
 
   function applyEdit(overwrite) {
     if (!S.edit) return;
+    Preview.revert();
     enableEcBtns(false); $('smw-ea-pub').textContent = 'Publicando…'; setEcStatus('Guardando…', 'warn');
-
     fetch(SMWidget.restUrl + 'apply-edit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': SMWidget.nonce },
@@ -379,7 +317,253 @@
   }
 
   function setEcStatus(t, cls) { const el = $('smw-ec-status'); el.textContent = t; el.className = 'smw-ec-status ' + (cls||''); }
-  function enableEcBtns(on) { [$('smw-ea-pub'),$('smw-ea-over'),$('smw-ea-rej')].forEach(b => { if(b) b.disabled = !on; }); }
+  function enableEcBtns(on) { [$('smw-ea-pub'),$('smw-ea-over'),$('smw-ea-rej'),$('smw-ea-prev')].forEach(b => { if(b) b.disabled = !on; }); }
+
+  /* ================================================================
+     LIVE PREVIEW ENGINE v2 — Elementor-style, zero server round-trip
+     Soporta: CSS, texto, HTML sections, SVG icons, imágenes
+  ================================================================ */
+  const Preview = {
+    _domUndo:    [],   // [{type, node/el, oldVal/parent/nextSibling}]
+    _active:     false,
+    _pendingImg: [],   // blob URLs a revocar al revertir
+
+    /* Punto de entrada principal */
+    apply(edit) {
+      if (!edit) return;
+      Preview.revert(); // limpiar preview anterior
+
+      const file = (edit.file || '').toLowerCase();
+      const ext  = file.split('.').pop();
+
+      if (ext === 'css') {
+        Preview._applyCSS(edit.new_content, edit.file);
+      } else if (['php','html','htm'].includes(ext)) {
+        Preview._applyHTML(edit);
+      } else if (ext === 'js') {
+        Preview._showUnsupported('JavaScript — preview solo visual no disponible. Revisá el diff y publicá.');
+        return;
+      } else if (['jpg','jpeg','png','gif','svg','webp'].includes(ext)) {
+        Preview._applyImage(edit);
+      } else {
+        // Intentar DOM diff genérico
+        Preview._applyDOMDiff(edit.diff);
+      }
+
+      Preview._active = true;
+      Preview._showBanner(edit);
+    },
+
+    /* ── 1. CSS: inyectar <style> en <head> ──────────────── */
+    _applyCSS(cssText, filename) {
+      let el = document.getElementById('smw-preview-css');
+      if (!el) {
+        el = document.createElement('style');
+        el.id = 'smw-preview-css';
+        document.head.appendChild(el);
+        Preview._domUndo.push({ type: 'style-created', el });
+      } else {
+        Preview._domUndo.push({ type: 'style-content', el, oldVal: el.textContent });
+      }
+      el.textContent = cssText;
+      console.log('[ShellMind Preview] CSS inyectado:', filename);
+    },
+
+    /* ── 2. HTML/PHP: diff quirúrgico + secciones nuevas ─── */
+    _applyHTML(edit) {
+      if (!edit.diff && !edit.new_content) return;
+
+      // Estrategia A: diff quirúrgico línea a línea
+      if (edit.diff) {
+        const applied = Preview._applyDOMDiff(edit.diff);
+        if (applied) return;
+      }
+
+      // Estrategia B: detectar bloques nuevos completos (sección, div, etc.)
+      if (edit.new_content) {
+        Preview._injectHTMLBlock(edit);
+      }
+    },
+
+    /* ── 3. Diff quirúrgico sobre nodos de texto ─────────── */
+    _applyDOMDiff(diff) {
+      if (!diff) return false;
+      const lines   = diff.split('\n');
+      const removed = lines
+        .filter(l => l.startsWith('-') && !l.startsWith('---'))
+        .map(l => l.slice(1).trim())
+        .filter(l => l.length > 3)
+        .join(' ')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+      const added = lines
+        .filter(l => l.startsWith('+') && !l.startsWith('+++'))
+        .map(l => l.slice(1).trim())
+        .filter(l => l.length > 3)
+        .join(' ')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+
+      if (!removed || !added) return false;
+
+      // Buscar nodo de texto que contenga el string removido
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        { acceptNode: n => n.parentElement && n.parentElement.id !== 'smw-root' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
+      );
+      let node, found = false;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && node.nodeValue.trim().includes(removed.substring(0, 40))) {
+          Preview._domUndo.push({ type: 'text', node, oldVal: node.nodeValue });
+          node.nodeValue = node.nodeValue.replace(removed.substring(0, 40), added.substring(0, 40));
+          found = true;
+          break;
+        }
+      }
+      return found;
+    },
+
+    /* ── 4. Inyectar bloque HTML nuevo (sección, iconos, etc.) ── */
+    _injectHTMLBlock(edit) {
+      // Detectar si es una sección nueva (no modifica existente)
+      const diffLines   = (edit.diff || '').split('\n');
+      const onlyAdded   = diffLines.every(l => !l.startsWith('-') || l.startsWith('---'));
+      const addedHTML   = diffLines
+        .filter(l => l.startsWith('+') && !l.startsWith('+++'))
+        .map(l => l.slice(1))
+        .join('\n');
+
+      if (!addedHTML.trim()) return;
+
+      // Crear el elemento preview en el DOM
+      const wrapper = document.createElement('div');
+      wrapper.id    = 'smw-preview-block';
+      wrapper.setAttribute('data-smw-preview', '1');
+      wrapper.style.cssText = 'outline: 2px dashed #22c55e; outline-offset: 4px; position: relative;';
+
+      // Badge "PREVIEW" sobre el bloque
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:0;left:0;background:#22c55e;color:#000;font-size:10px;font-weight:700;padding:2px 6px;z-index:9999;font-family:monospace;';
+      badge.textContent = '⚡ PREVIEW';
+      wrapper.appendChild(badge);
+
+      // Parsear el HTML y agregarlo
+      const tmp = document.createElement('div');
+      tmp.innerHTML = addedHTML;
+      Array.from(tmp.children).forEach(child => wrapper.appendChild(child.cloneNode(true)));
+
+      // Insertar al final del main content o del body
+      const mainContent = document.querySelector('main') || document.querySelector('.entry-content') || document.querySelector('#content') || document.body;
+      mainContent.appendChild(wrapper);
+
+      Preview._domUndo.push({ type: 'element', el: wrapper, parent: mainContent });
+      console.log('[ShellMind Preview] Bloque HTML inyectado en', mainContent.tagName);
+    },
+
+    /* ── 5. Imagen: reemplazar src via blob URL ──────────── */
+    _applyImage(edit) {
+      if (!edit.new_content) return;
+      // edit.new_content puede ser base64 o URL
+      const filename = edit.file.split('/').pop();
+
+      // Buscar <img> con ese filename en el src
+      const imgs = document.querySelectorAll('img');
+      imgs.forEach(img => {
+        if (img.src && img.src.includes(filename)) {
+          Preview._domUndo.push({ type: 'img', el: img, oldVal: img.src });
+          // Si new_content es base64
+          if (edit.new_content.startsWith('data:')) {
+            img.src = edit.new_content;
+          } else if (edit.new_content.startsWith('http')) {
+            img.src = edit.new_content;
+          }
+          console.log('[ShellMind Preview] Imagen reemplazada:', filename);
+        }
+      });
+    },
+
+    /* ── 6. Revertir todo ────────────────────────────────── */
+    revert() {
+      // Revocar blob URLs
+      Preview._pendingImg.forEach(url => URL.revokeObjectURL(url));
+      Preview._pendingImg = [];
+
+      // Deshacer cambios DOM en orden inverso
+      const undos = Preview._domUndo.reverse();
+      undos.forEach(u => {
+        try {
+          if (u.type === 'style-created') {
+            u.el.textContent = '';
+          } else if (u.type === 'style-content') {
+            u.el.textContent = u.oldVal;
+          } else if (u.type === 'text') {
+            u.node.nodeValue = u.oldVal;
+          } else if (u.type === 'element') {
+            if (u.el && u.el.parentNode) u.el.parentNode.removeChild(u.el);
+          } else if (u.type === 'img') {
+            u.el.src = u.oldVal;
+          } else if (u.type === 'attr') {
+            u.el.setAttribute(u.attr, u.oldVal);
+          }
+        } catch(e) { console.warn('[ShellMind Preview] Revert error:', e); }
+      });
+
+      Preview._domUndo  = [];
+      Preview._active   = false;
+
+      // Sacar banner
+      const banner = document.getElementById('smw-live-banner');
+      if (banner) banner.remove();
+    },
+
+    /* ── 7. Banner flotante ──────────────────────────────── */
+    _showBanner(edit) {
+      const existing = document.getElementById('smw-live-banner');
+      if (existing) existing.remove();
+
+      const ext    = (edit.file || '').split('.').pop().toLowerCase();
+      const isCSS  = ext === 'css';
+      const isNew  = edit.diff && edit.diff.split('\n').every(l => !l.startsWith('-') || l.startsWith('---'));
+      const typeLabel = isCSS ? '🎨 CSS' : isNew ? '➕ Nueva sección' : '✏️ Contenido';
+
+      const banner = document.createElement('div');
+      banner.id = 'smw-live-banner';
+      banner.style.cssText = `
+        position:fixed;top:0;left:0;right:0;z-index:2147483647;
+        background:#0f172a;color:#fff;padding:10px 20px;
+        display:flex;align-items:center;justify-content:space-between;
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+        font-size:13px;border-bottom:2px solid #22c55e;
+        box-shadow:0 2px 16px rgba(0,0,0,.6);
+      `;
+      banner.innerHTML = `
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span style="color:#22c55e;font-weight:700;font-size:14px;">⚡ PREVIEW LOCAL</span>
+          <span style="background:#1e293b;padding:2px 8px;border-radius:4px;font-size:11px;font-family:monospace;">${edit.file.split('/').pop()}</span>
+          <span style="color:#94a3b8;font-size:12px;">${typeLabel} — sin publicar</span>
+        </span>
+        <div style="display:flex;gap:8px;">
+          <button id="smw-lb-pub"  style="background:#22c55e;color:#000;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">▲ Publicar</button>
+          <button id="smw-lb-disc" style="background:#374151;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;">✕ Descartar</button>
+        </div>
+      `;
+      document.body.appendChild(banner);
+
+      document.getElementById('smw-lb-pub').addEventListener('click', () => {
+        banner.remove();
+        Preview.revert();
+        applyEdit(false);
+      });
+      document.getElementById('smw-lb-disc').addEventListener('click', () => {
+        Preview.revert();
+      });
+    },
+
+    _showUnsupported(msg) {
+      addBubble('bot', '⚠️ ' + msg);
+    }
+  };
 
   /* ── Bubble helpers ────────────────────────────────── */
   function addBubble(role, text) {
