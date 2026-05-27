@@ -159,14 +159,15 @@ class ShellMind_Claude_API {
                             break;
 
                         case 'generate_image':
-                            $img_result = $this->call_replicate( $input );
-                            $this->sse_send( 'image_generated', $img_result );
+                            // Start Replicate job without blocking  return job_url immediately
+                            $job = $this->start_replicate_job( $input );
+                            $this->sse_send( 'image_pending', $job );
                             $tool_results[] = [
                                 'type'        => 'tool_result',
                                 'tool_use_id' => $id,
-                                'content'     => isset($img_result['url'])
-                                    ? 'Image generated: ' . $img_result['url']
-                                    : 'Error: ' . ($img_result['error'] ?? 'unknown'),
+                                'content'     => isset($job['job_url'])
+                                    ? 'Image generation started. Job: ' . $job['job_url']
+                                    : 'Error starting image job: ' . ($job['error'] ?? 'unknown'),
                             ];
                             break;
 
@@ -684,6 +685,102 @@ Do NOT discuss internal server details, files, or WordPress administration.";
         unset( $msg );
 
         return $messages;
+    }
+
+
+    /* Non-blocking Replicate job start  returns job_url for frontend polling */
+    public function start_replicate_job( array $input ) : array {
+        $api_key = get_option( 'shellmind_replicate_key', '' );
+        if ( empty( $api_key ) ) {
+            return [ 'error' => 'Replicate API key not set. Go to ShellMind -> Settings.' ];
+        }
+
+        $prompt = $input['prompt'] ?? '';
+        if ( empty( $prompt ) ) return [ 'error' => 'Empty prompt.' ];
+
+        $model = 'black-forest-labs/flux-schnell';
+        $url   = 'https://api.replicate.com/v1/models/' . $model . '/predictions';
+
+        $body = json_encode([
+            'input' => [
+                'prompt'              => $prompt,
+                'num_outputs'         => 1,
+                'aspect_ratio'        => '16:9',
+                'output_format'       => 'webp',
+                'output_quality'      => 80,
+                'num_inference_steps' => 4,
+            ]
+        ]);
+
+        $ch = curl_init( $url );
+        curl_setopt_array( $ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $body,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Token ' . $api_key,
+                'Content-Type: application/json',
+            ],
+        ] );
+
+        $raw  = curl_exec( $ch );
+        $err  = curl_error( $ch );
+        curl_close( $ch );
+
+        if ( $err ) return [ 'error' => $err ];
+
+        $data = json_decode( $raw, true );
+        if ( ! $data ) return [ 'error' => 'Invalid JSON from Replicate.' ];
+
+        // If already succeeded (fast models)
+        if ( isset( $data['output'] ) && $data['status'] === 'succeeded' ) {
+            $img_url = is_array( $data['output'] ) ? $data['output'][0] : $data['output'];
+            return [
+                'url'         => $img_url,
+                'prompt'      => $prompt,
+                'description' => $input['description'] ?? 'Imagen generada',
+                'status'      => 'succeeded',
+            ];
+        }
+
+        // Return job_url for frontend to poll
+        return [
+            'job_url'     => $data['urls']['get'] ?? '',
+            'status'      => $data['status'] ?? 'starting',
+            'prompt'      => $prompt,
+            'description' => $input['description'] ?? 'Imagen generada',
+        ];
+    }
+
+
+    /* Poll a Replicate job by URL */
+    public function poll_replicate_job( string $job_url ) : array {
+        $api_key = get_option( 'shellmind_replicate_key', '' );
+        if ( empty( $api_key ) ) return [ 'error' => 'No API key.' ];
+
+        $ch = curl_init( $job_url );
+        curl_setopt_array( $ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => [ 'Authorization: Token ' . $api_key ],
+        ] );
+        $raw = curl_exec( $ch );
+        curl_close( $ch );
+
+        $data = json_decode( $raw, true );
+        if ( ! $data ) return [ 'status' => 'error', 'error' => 'Invalid response.' ];
+
+        if ( $data['status'] === 'succeeded' && isset( $data['output'] ) ) {
+            $img_url = is_array( $data['output'] ) ? $data['output'][0] : $data['output'];
+            return [ 'status' => 'succeeded', 'url' => $img_url ];
+        }
+
+        if ( $data['status'] === 'failed' ) {
+            return [ 'status' => 'failed', 'error' => $data['error'] ?? 'Job failed.' ];
+        }
+
+        return [ 'status' => $data['status'] ?? 'processing' ];
     }
 
     /* ==============================================================

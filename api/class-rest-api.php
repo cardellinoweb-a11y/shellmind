@@ -263,15 +263,24 @@ class ShellMind_REST_API {
     }
 
     public function handle_generate_image( WP_REST_Request $req ) {
+        $claude = new ShellMind_Claude_API();
+
+        // Mode 1: Poll existing job
+        $job_url = $req->get_param( 'job_url' );
+        if ( ! empty( $job_url ) ) {
+            $result = $claude->poll_replicate_job( $job_url );
+            return rest_ensure_response( $result );
+        }
+
+        // Mode 2: Start new job
         $prompt      = $req->get_param( 'prompt' );
         $description = $req->get_param( 'description' ) ?? '';
 
         if ( empty( $prompt ) ) {
-            return new WP_Error( 'bad_request', 'prompt required.', [ 'status' => 400 ] );
+            return new WP_Error( 'bad_request', 'prompt or job_url required.', [ 'status' => 400 ] );
         }
 
-        $claude = new ShellMind_Claude_API();
-        $result = $claude->call_replicate_public( [ 'prompt' => $prompt, 'description' => $description ] );
+        $result = $claude->start_replicate_job( [ 'prompt' => $prompt, 'description' => $description ] );
 
         if ( isset( $result['error'] ) ) {
             return new WP_Error( 'replicate_error', $result['error'], [ 'status' => 500 ] );

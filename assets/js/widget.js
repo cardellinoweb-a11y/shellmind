@@ -366,18 +366,32 @@ async function streamDesigner(userText, typingEl) {
         scrollDown();
       } else if (ev.type === 'tool_use') {
         ETA.start('Leyendo archivo…', 4);
-      } else         if (ev.type === 'image_generated') {
-          const img = ev.data;
-          if (img && img.url) {
-            const html = '<div class="smw-img-result">'
-              + '<div class="smw-img-label">' + esc(img.description || 'Imagen generada') + '</div>'
-              + '<img src="' + img.url + '" alt="' + esc(img.prompt || '') + '" class="smw-img-preview" />'
-              + '<div class="smw-img-actions">'
-              + '<button class="smw-img-use" data-url="' + img.url + '" data-prompt="' + esc(img.prompt||'') + '"> Usar esta imagen</button>'
-              + '<button class="smw-img-regen" data-prompt="' + esc(img.prompt||'') + '"> Regenerar</button>'
-              + '</div></div>';
-            addBubble('assistant', html, false);
+      } else         if (ev.type === 'image_pending') {
+          const job = ev.data;
+          // Show spinner bubble while polling
+          const spinnerId = 'smw-img-spinner-' + Date.now();
+          const spinnerHtml = '<div id="' + spinnerId + '" class="smw-img-result">'
+            + '<div class="smw-img-label"> ' + esc(job.description || 'Generando imagen con Flux...') + '</div>'
+            + '<div class="smw-img-spinner" style="padding:12px;color:rgba(255,255,255,.5);font-size:12px;"> Generando... (~5-10 seg)</div>'
+            + '</div>';
+          addBubble('assistant', spinnerHtml, false);
+
+          // If already succeeded (fast path)
+          if (job.status === 'succeeded' && job.url) {
+            showImageResult(spinnerId, job.url, job.prompt, job.description);
+            return;
           }
+
+          // Poll /generate-image?job_url=... every 2s
+          if (job.job_url) {
+            pollImageJob(job.job_url, spinnerId, job.prompt, job.description, 0);
+          }
+          return;
+        }
+        if (ev.type === 'image_generated') {
+          // Legacy handler
+          const img = ev.data;
+          if (img && img.url) showImageResult(null, img.url, img.prompt, img.description);
           return;
         }
 
@@ -587,6 +601,56 @@ function mdLight(s) {
 }
 
 /* ── Init ───────────────────────────────────────────── */
+
+
+/*  Image polling helpers  */
+function pollImageJob(jobUrl, spinnerId, prompt, description, attempt) {
+  if (attempt > 30) {
+    const el = document.getElementById(spinnerId);
+    if (el) el.innerHTML = '<div style="color:#f87171;font-size:12px;"> Timeout generando imagen.</div>';
+    return;
+  }
+  setTimeout(function() {
+    fetch(SMWidget.restUrl + 'shellmind/v1/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-WP-Nonce': SMWidget.nonce,
+      },
+      body: JSON.stringify({ job_url: jobUrl }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'succeeded' && data.url) {
+        showImageResult(spinnerId, data.url, prompt, description);
+      } else if (data.status === 'failed') {
+        const el = document.getElementById(spinnerId);
+        if (el) el.innerHTML = '<div style="color:#f87171;font-size:12px;">Error: ' + esc(data.error||'') + '</div>';
+      } else {
+        pollImageJob(jobUrl, spinnerId, prompt, description, attempt + 1);
+      }
+    })
+    .catch(function() {
+      pollImageJob(jobUrl, spinnerId, prompt, description, attempt + 1);
+    });
+  }, 2000);
+}
+
+function showImageResult(spinnerId, url, prompt, description) {
+  const html = '<div class="smw-img-result">'
+    + '<div class="smw-img-label"> ' + esc(description || 'Imagen generada') + '</div>'
+    + '<img src="' + url + '" alt="' + esc(prompt || '') + '" class="smw-img-preview" style="width:100%;border-radius:8px;margin:6px 0;" />'
+    + '<div class="smw-img-actions" style="display:flex;gap:6px;margin-top:4px;">'
+    + '<button class="smw-img-use" data-url="' + url + '" data-prompt="' + esc(prompt||'') + '" style="flex:1;background:#22c55e;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;"> Usar imagen</button>'
+    + '<button class="smw-img-regen" data-prompt="' + esc(prompt||'') + '" style="background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;"> Regenerar</button>'
+    + '</div></div>';
+
+  if (spinnerId) {
+    const el = document.getElementById(spinnerId);
+    if (el) { el.outerHTML = html; return; }
+  }
+  addBubble('assistant', html, false);
+}
 
 /*  Live iframe Preview  */
 function showIframePreview(edit) {
