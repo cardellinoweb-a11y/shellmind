@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'SHELLMIND_VERSION',    '0.3.1' );
+define( 'SHELLMIND_VERSION', '0.5.1' );
 define( 'SHELLMIND_PATH',       plugin_dir_path( __FILE__ ) );
 define( 'SHELLMIND_URL',        plugin_dir_url( __FILE__ ) );
 define( 'SHELLMIND_BACKUP_DIR', WP_CONTENT_DIR . '/shellmind-backups/' );
