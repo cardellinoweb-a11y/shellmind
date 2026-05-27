@@ -17,6 +17,20 @@
       <div class="sm-frow">
         <input type="password" id="sm-api-key" class="sm-finput" placeholder="sk-ant-api03-…"/>
         <button class="sm-btn sm-btn--g" id="sm-save-key">Guardar</button>
+<!-- Replicate API Key -->
+<div class="sm-section">
+  <h3>Replicate API Key <span style="font-size:11px;color:#4dd9ff;font-weight:400;">(para generar imagenes con Flux)</span></h3>
+  <input type="password" id="sm-replicate-key" class="sm-finput" placeholder="r8_..." value="<?php echo esc_attr(get_option('shellmind_replicate_key','')); ?>"/>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin:4px 0 8px;">Consegui tu key en <a href="https://replicate.com/account/api-tokens" target="_blank" style="color:#4dd9ff">replicate.com/account/api-tokens</a>  ~$0.003/imagen con Flux Schnell</div>
+  <button class="sm-btn sm-btn--g" id="sm-save-replicate">Guardar</button>
+</div>
+<script>
+document.getElementById('sm-save-replicate').addEventListener('click',function(){
+  fetch(SMAdmin.restUrl+'shellmind/v1/settings',{method:'POST',headers:{'Content-Type':'application/json','X-WP-Nonce':SMAdmin.nonce},body:JSON.stringify({replicate_key:document.getElementById('sm-replicate-key').value})})
+  .then(r=>r.json()).then(()=>{ this.textContent='Guardado!'; setTimeout(()=>{this.textContent='Guardar'},2000); });
+});
+</script>
+
       </div>
       <p id="sm-key-st" class="sm-fstatus"></p>
     </div>

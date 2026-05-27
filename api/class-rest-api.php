@@ -235,6 +235,10 @@ class ShellMind_REST_API {
                 update_option( 'shellmind_api_key', sanitize_text_field( $key ) );
             }
             $widget = $req->get_param( 'widget_enabled' );
+            $replicate_key = $req->get_param( 'replicate_key' );
+            if ( $replicate_key !== null ) {
+                update_option( 'shellmind_replicate_key', sanitize_text_field( $replicate_key ) );
+            }
             if ( $widget !== null ) {
                 update_option( 'shellmind_widget_enabled', (bool) $widget );
             }
