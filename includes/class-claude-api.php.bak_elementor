@@ -56,41 +56,6 @@ class ShellMind_Claude_API {
                 'required' => [ 'prompt' ],
             ],
         ],
-        [
-            'name' => 'list_pages',
-            'description' => 'List WordPress pages/posts with their IDs, titles and URLs. Use this to find the post_id of a page before reading or editing its Elementor content.',
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'post_type' => [ 'type' => 'string', 'description' => 'Post type to list: page, post, or any. Default: page.' ],
-                ],
-                'required' => [],
-            ],
-        ],
-        [
-            'name' => 'read_elementor_page',
-            'description' => 'Read the Elementor JSON data for a WordPress page/post by post_id. Returns the full widget tree so you can find elements, icons, text and settings. Always call list_pages first if you do not know the post_id.',
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'post_id' => [ 'type' => 'integer', 'description' => 'The WordPress post ID of the page to read.' ],
-                ],
-                'required' => [ 'post_id' ],
-            ],
-        ],
-        [
-            'name' => 'propose_elementor_edit',
-            'description' => 'Propose an edit to Elementor page data. The user sees a summary and must click Apply before anything changes. The new_data must be the COMPLETE modified Elementor JSON array for the post.',
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'post_id'     => [ 'type' => 'integer', 'description' => 'The WordPress post ID to edit.' ],
-                    'new_data'    => [ 'type' => 'string',  'description' => 'Complete new Elementor JSON data (full array, not a patch).' ],
-                    'description' => [ 'type' => 'string',  'description' => 'Plain-language description of what changed and why.' ],
-                ],
-                'required' => [ 'post_id', 'new_data', 'description' ],
-            ],
-        ],
     ];
 
     public function __construct() {
@@ -203,56 +168,6 @@ class ShellMind_Claude_API {
                                 'content'     => isset($job['job_url'])
                                     ? 'Image generation started. Job: ' . $job['job_url']
                                     : 'Error starting image job: ' . ($job['error'] ?? 'unknown'),
-                            ];
-                            break;
-                        case 'list_pages':
-                            $post_type = $input['post_type'] ?? 'page';
-                            if ( $post_type === 'any' ) $post_type = '';
-                            $query_args = [
-                                'post_type'      => $post_type ?: [ 'page', 'post' ],
-                                'post_status'    => 'publish',
-                                'posts_per_page' => 50,
-                                'orderby'        => 'title',
-                                'order'          => 'ASC',
-                            ];
-                            $posts = get_posts( $query_args );
-                            $result_list = [];
-                            foreach ( $posts as $p ) {
-                                $result_list[] = [
-                                    'post_id' => $p->ID,
-                                    'title'   => $p->post_title,
-                                    'url'     => get_permalink( $p->ID ),
-                                    'type'    => $p->post_type,
-                                ];
-                            }
-                            $tool_result = wp_json_encode( $result_list, JSON_UNESCAPED_UNICODE );
-                            break;
-
-                        case 'read_elementor_page':
-                            $post_id = intval( $input['post_id'] ?? 0 );
-                            if ( ! $post_id ) {
-                                $tool_result = 'Error: post_id is required.';
-                                break;
-                            }
-                            $raw = get_post_meta( $post_id, '_elementor_data', true );
-                            if ( empty( $raw ) ) {
-                                $tool_result = 'No Elementor data found for post_id ' . $post_id . '. The page may not use Elementor.';
-                            } else {
-                                $tool_result = $raw;
-                            }
-                            break;
-
-                        case 'propose_elementor_edit':
-                            $pending_edit = [
-                                'type'        => 'elementor',
-                                'post_id'     => intval( $input['post_id'] ?? 0 ),
-                                'new_data'    => $input['new_data'] ?? '',
-                                'description' => $input['description'] ?? '',
-                            ];
-                            $tool_results[] = [
-                                'type'       => 'tool_result',
-                                'tool_use_id'=> $id,
-                                'content'    => 'Elementor edit proposed. Waiting for user confirmation.',
                             ];
                             break;
 
@@ -658,10 +573,7 @@ You are ShellMind, an expert WordPress server assistant embedded inside the Word
 ## YOUR TOOLS
 1. read_file       read any file within the WP install before touching it
 2. list_directory  explore the directory structure
-3. list_pages - list WordPress pages with their post_ids
-4. read_elementor_page(post_id) - read Elementor widget JSON for a page
-5. propose_elementor_edit(post_id, new_data, description) - propose Elementor DB edit (user must confirm)
-6. propose_file_edit  send a COMPLETE new file to the user as a diff for review; user must click "Apply" to commit
+3. propose_file_edit  send a COMPLETE new file to the user as a diff for review; user must click "Apply" to commit
 
 ## RULES
 - For CSS/style changes: read ONLY the specific CSS file (max 1 read_file), then propose_file_edit immediately. Do NOT read templates or PHP files for style-only changes.

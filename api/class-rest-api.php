@@ -72,6 +72,12 @@ class ShellMind_REST_API {
             'permission_callback' => [ $this, 'only_admin' ],
         ] );
 
+
+        register_rest_route( $ns, '/apply-elementor-edit', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'handle_apply_elementor_edit' ],
+            'permission_callback' => [ $this, 'only_admin' ],
+        ] );
         register_rest_route( $ns, '/settings', [
             'methods'             => [ 'GET', 'POST' ],
             'callback'            => [ $this, 'handle_settings' ],
@@ -290,5 +296,52 @@ class ShellMind_REST_API {
 
         return rest_ensure_response( $result );
     }
+
+    public function handle_apply_elementor_edit( WP_REST_Request $req ) {
+        $post_id     = intval( $req->get_param( 'post_id' ) );
+        $new_data    = $req->get_param( 'new_data' );
+        $description = $req->get_param( 'description' ) ?? '';
+
+        if ( ! $post_id || empty( $new_data ) ) {
+            return new WP_Error( 'bad_request', 'post_id and new_data are required.', [ 'status' => 400 ] );
+        }
+
+        // Validate JSON
+        $decoded = json_decode( $new_data, true );
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            return new WP_Error( 'invalid_json', 'new_data is not valid JSON: ' . json_last_error_msg(), [ 'status' => 400 ] );
+        }
+
+        // Backup current Elementor data
+        $old_data = get_post_meta( $post_id, '_elementor_data', true );
+        $backup_key = '_shellmind_elementor_backup_' . time();
+        update_post_meta( $post_id, $backup_key, $old_data );
+
+        // Save new Elementor data
+        update_post_meta( $post_id, '_elementor_data', $new_data );
+
+        // Clear Elementor cache for this post
+        if ( class_exists( '\Elementor\Plugin' ) ) {
+            \Elementor\Plugin::$instance->files_manager->clear_cache();
+        }
+        // Also clear via WP meta approach
+        delete_post_meta( $post_id, '_elementor_css' );
+        wp_update_post( [ 'ID' => $post_id, 'post_modified' => current_time( 'mysql' ) ] );
+
+        // Audit log
+        $this->audit( 'apply_elementor_edit', [
+            'post_id'     => $post_id,
+            'description' => $description,
+            'backup_key'  => $backup_key,
+        ] );
+
+        return rest_ensure_response( [
+            'success'    => true,
+            'post_id'    => $post_id,
+            'backup_key' => $backup_key,
+            'message'    => 'Elementor data updated. Cache cleared.',
+        ] );
+    }
+
 
 }
