@@ -19,8 +19,8 @@ class ShellMind_Admin {
     public function enqueue_admin_assets( $hook ) {
         if ( strpos( $hook, 'shellmind' ) === false ) return;
 
-        wp_enqueue_style( 'shellmind-css', SHELLMIND_URL . 'assets/css/chat.css', [], SHELLMIND_VERSION );
-        wp_enqueue_script( 'shellmind-js',  SHELLMIND_URL . 'assets/js/chat.js',  [], SHELLMIND_VERSION, true );
+        wp_enqueue_style( 'shellmind-css', SHELLMIND_URL . 'assets/css/chat.css', [], filemtime( SHELLMIND_PATH . 'assets/css/chat.css' ) );
+        wp_enqueue_script( 'shellmind-js',  SHELLMIND_URL . 'assets/js/chat.js',  [], filemtime( SHELLMIND_PATH . 'assets/js/chat.js' ), true );
 
         wp_localize_script( 'shellmind-js', 'SM', [
             'rest'    => get_rest_url( null, 'shellmind/v1/' ),
@@ -36,8 +36,8 @@ class ShellMind_Admin {
         if ( empty( get_option( 'shellmind_api_key' ) ) ) return;
         if ( ! get_option( 'shellmind_widget_enabled', true ) ) return;
 
-        wp_enqueue_style(  'shellmind-widget-css', SHELLMIND_URL . 'assets/css/widget.css', [], SHELLMIND_VERSION );
-        wp_enqueue_script( 'shellmind-widget-js',  SHELLMIND_URL . 'assets/js/widget.js',  [], SHELLMIND_VERSION, true );
+        wp_enqueue_style(  'shellmind-widget-css', SHELLMIND_URL . 'assets/css/widget.css', [], filemtime( SHELLMIND_PATH . 'assets/css/widget.css' ) );
+        wp_enqueue_script( 'shellmind-widget-js',  SHELLMIND_URL . 'assets/js/widget.js',  [], filemtime( SHELLMIND_PATH . 'assets/js/widget.js' ), true );
 
         $is_admin = is_user_logged_in() && current_user_can( 'administrator' );
 
