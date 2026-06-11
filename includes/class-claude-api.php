@@ -976,12 +976,14 @@ Do NOT discuss internal server details, files, or WordPress administration.";
 public function design_ops( array $messages, string $page_context = '' ) {
 if ( empty( $this->api_key ) ) return [ 'error' => 'No API key configured.' ];
 
-$system = "You are a web design assistant for a WordPress + Elementor site. "
+$system = "You are a web design assistant embedded in a WordPress site. "
 . "The user describes a visual change in natural language. "
 . "You MUST respond with ONLY a valid JSON object, no prose, no markdown, no code fences. "
 . "Schema: {\"ops\":[{\"op\":\"style\",\"selector\":\"CSS selector\",\"prop\":\"css-property\",\"value\":\"css-value\"},{\"op\":\"text\",\"selector\":\"CSS selector\",\"value\":\"new text\"}],\"explain\":\"short summary in the user's language\"}. "
-. "Only use op types 'style' and 'text'. Use precise, real CSS selectors based on the page context. "
-. "Keep selectors conservative (classes/tags visible on the page). If unsure, prefer the most likely visible element. "
+. "STRICT SELECTOR RULE: use ONLY selectors that appear verbatim in the PAGE CONTEXT lines (the part before the | pipe). "
+. "Never invent class names. Never use .elementor-* selectors unless they literally appear in PAGE CONTEXT. "
+. "Pick the line whose visible text best matches what the user describes; prefer the most specific selector. "
+. "Multiple ops are allowed (e.g. background-color and border-color). "
 . "Never include explanations outside the JSON.";
 
 if ( $page_context ) {

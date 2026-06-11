@@ -1,6 +1,11 @@
 # ShellMind — Devlog de sesiones
 > Entrada nueva ARRIBA al cerrar cada sesión: hecho / a medias / próximo paso / decisiones.
 
+## 2026-06-11 (fix selectores design-ops)
+- Bug hallado: design_ops inventaba selectores .elementor-* pero la home es template custom (sin Elementor) -> CSS publicado apuntaba al vacio. En otro intento pinto button#smw-send (su propio boton de enviar) porque el unico <button> de la pagina era el del widget.
+- Fix en 3 capas: pageContext emite selectores reales verificados con texto visible (SELECTOR | "texto") excluyendo el propio widget; prompt de design_ops con regla estricta; applyOps valida cada selector contra el DOM, descarta los que no matchean y avisa. Solo ops aplicadas se publican.
+- Limpieza: bloques ShellMind muertos removidos del Additional CSS (1074 -> 168 bytes).
+
 ## 2026-06-11 (Fase 2: publicar CSS)
 - Hecho: botones Publicar/Descartar del preview ahora se renderizan (DOM + clases) y funcionan via delegacion. Nuevo endpoint publish-css: convierte ops a CSS sanitizado y persiste en Additional CSS (wp_update_custom_css_post) con backup en shellmind-backups/files/ y audit log. design-ops asegurado: solo manage_options.
 - Pendiente: ops de texto (op=text) quedan solo en preview; persistirlas requiere edicion Elementor. Editor CSS manual sin IA aun no hecho.

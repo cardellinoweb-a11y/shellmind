@@ -323,27 +323,55 @@ async function sendMsg() {
 }
 
   /* === FAST DESIGN OPS (no stream, local preview) === */
+  function cssPath(e){
+    if(e.id) return '#'+e.id;
+    var tag=e.tagName.toLowerCase();
+    var cls=(typeof e.className==='string')?e.className.trim().split(/\s+/).filter(Boolean):[];
+    cls=cls.filter(function(c){return !/^(smw-|elementor-element-)/.test(c);}).slice(0,4);
+    return tag+(cls.length?'.'+cls.join('.'):'');
+  }
   function pageContext(){
     try{
-      var sel='header,nav,main,section,footer,h1,h2,h3,.elementor-widget,button,a.elementor-button';
-      var els=document.querySelectorAll(sel); var out=[];
-      for(var i=0;i<els.length && i<60;i++){
-        var e=els[i]; var id=e.id?('#'+e.id):''; var cls=e.className&&typeof e.className==='string'?('.'+e.className.trim().split(/\s+/).slice(0,3).join('.')):'';
-        var txt=(e.textContent||'').trim().slice(0,40);
-        out.push(e.tagName.toLowerCase()+id+cls+(txt?(' "'+txt+'"'):''));
+      var out=[]; var seen={};
+      var ctas=document.querySelectorAll('a,button'); var added=0;
+      for(var i=0;i<ctas.length && added<25;i++){
+        var e=ctas[i];
+        if(e.closest && (e.closest('#smw-overlay')||e.closest('#smw-btn'))) continue;
+        var txt=(e.textContent||'').trim().replace(/\s+/g,' ').slice(0,50);
+        if(!txt) continue;
+        var sel=cssPath(e);
+        var key=sel+'|'+txt; if(seen[key]) continue; seen[key]=1;
+        try{ if(document.querySelectorAll(sel).length<1) continue; }catch(err){ continue; }
+        out.push('CTA '+sel+' | "'+txt+'"'); added++;
       }
-      return out.join('\n');
+      var els=document.querySelectorAll('header,nav,main,section,footer,h1,h2,h3,h4,p,img');
+      for(var k=0;k<els.length && k<50;k++){
+        var el=els[k];
+        if(el.closest && el.closest('#smw-overlay')) continue;
+        var t=(el.textContent||'').trim().replace(/\s+/g,' ').slice(0,40);
+        out.push(cssPath(el)+(t?(' | "'+t+'"'):''));
+      }
+      return 'Each line: SELECTOR | "visible text". Use these selectors VERBATIM.\n'+out.join('\n');
     }catch(err){return '';}
   }
   function applyOps(ops){
     var st=document.getElementById('smw-preview-style');
     if(!st){st=document.createElement('style');st.id='smw-preview-style';document.head.appendChild(st);}
-    var css='';
+    var css=''; var applied=[]; var missed=[];
     (ops||[]).forEach(function(o){
-      if(o.op==='style' && o.selector && o.prop){ css+=o.selector+'{'+o.prop+':'+o.value+' !important;}\n'; }
-      else if(o.op==='text' && o.selector){ try{var t=document.querySelector(o.selector); if(t) t.textContent=o.value;}catch(e){} }
+      if(!o || !o.selector) return;
+      var n=0;
+      try{ n=document.querySelectorAll(o.selector).length; }catch(e){ n=0; }
+      if(o.op==='style' && o.prop){
+        if(n>0){ css+=o.selector+'{'+o.prop+':'+o.value+' !important;}\n'; applied.push(o); }
+        else { missed.push(o.selector); }
+      } else if(o.op==='text'){
+        if(n>0){ try{var t=document.querySelector(o.selector); if(t){ t.textContent=o.value; applied.push(o);} }catch(e){ missed.push(o.selector); } }
+        else { missed.push(o.selector); }
+      }
     });
     st.textContent=css;
+    return { applied: applied, missed: missed };
   }
   function clearPreview(){ var st=document.getElementById('smw-preview-style'); if(st) st.textContent=''; }
   async function publishOps(btn){
@@ -395,10 +423,17 @@ async function sendMsg() {
     var data=await resp.json();
     removeEl(typingEl);
     if(data && data.ops){
-      applyOps(data.ops);
-      window.__smwLastOps=data.ops;
-      S.designer.lastOps=data.ops;
-      var bub=addBubble('bot',(data.explain||'Listo, mira el preview.'));
+      var rep=applyOps(data.ops);
+      window.__smwLastOps=rep.applied;
+      S.designer.lastOps=rep.applied;
+      var note='';
+      if(rep.missed.length){ note=' \u26a0 '+rep.missed.length+' selector(es) no existen en esta p\u00e1gina y se ignoraron.'; }
+      if(!rep.applied.length){
+        addBubble('bot',(data.explain||'')+note);
+        addSys('Ning\u00fan selector coincidi\u00f3 con elementos visibles. Describ\u00ed el elemento por su texto (ej: \u201cel bot\u00f3n Quiero mi diagn\u00f3stico gratis\u201d) y reintent\u00e1.');
+        return;
+      }
+      var bub=addBubble('bot',(data.explain||'Listo, mira el preview.')+note);
       if(bub){
         var act=document.createElement('div');
         act.className='smw-preview-actions';
