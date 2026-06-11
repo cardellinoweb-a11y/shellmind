@@ -309,7 +309,7 @@ async function sendMsg() {
 
   try {
     if (st) {
-      await streamDesigner(text, typing);
+      await sendDesignOps(text, typing);
     } else {
       await sendVisitor(text, typing);
     }
@@ -322,6 +322,48 @@ async function sendMsg() {
   }
 }
 
+  /* === FAST DESIGN OPS (no stream, local preview) === */
+  function pageContext(){
+    try{
+      var sel='header,nav,main,section,footer,h1,h2,h3,.elementor-widget,button,a.elementor-button';
+      var els=document.querySelectorAll(sel); var out=[];
+      for(var i=0;i<els.length && i<60;i++){
+        var e=els[i]; var id=e.id?('#'+e.id):''; var cls=e.className&&typeof e.className==='string'?('.'+e.className.trim().split(/\s+/).slice(0,3).join('.')):'';
+        var txt=(e.textContent||'').trim().slice(0,40);
+        out.push(e.tagName.toLowerCase()+id+cls+(txt?(' "'+txt+'"'):''));
+      }
+      return out.join('\n');
+    }catch(err){return '';}
+  }
+  function applyOps(ops){
+    var st=document.getElementById('smw-preview-style');
+    if(!st){st=document.createElement('style');st.id='smw-preview-style';document.head.appendChild(st);}
+    var css='';
+    (ops||[]).forEach(function(o){
+      if(o.op==='style' && o.selector && o.prop){ css+=o.selector+'{'+o.prop+':'+o.value+' !important;}\n'; }
+      else if(o.op==='text' && o.selector){ try{var t=document.querySelector(o.selector); if(t) t.textContent=o.value;}catch(e){} }
+    });
+    st.textContent=css;
+  }
+  function clearPreview(){ var st=document.getElementById('smw-preview-style'); if(st) st.textContent=''; }
+  async function sendDesignOps(userText, typingEl){
+    var msgs=S.designer.msgs.map(function(m){return {role:m.role,content:m.content};});
+    var resp=await fetch(SMWidget.restUrl + 'design-ops', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-WP-Nonce':SMWidget.nonce},
+      body:JSON.stringify({ messages: msgs, context: pageContext() })
+    });
+    if(!resp.ok){ removeEl(typingEl); return streamDesigner(userText, typingEl); }
+    var data=await resp.json();
+    removeEl(typingEl);
+    if(data && data.ops){
+      applyOps(data.ops);
+      window.__smwLastOps=data.ops;
+      addBubble('bot',(data.explain||'Listo, mira el preview.')+' <div class="smw-preview-actions"><button id="smw-preview-pub">Publicar</button><button id="smw-preview-rej">Descartar</button></div>');
+      return;
+    }
+    return streamDesigner(userText, typingEl);
+  }
 /* ── Stream designer (SSE) ──────────────────────────── */
 async function streamDesigner(userText, typingEl) {
   const msgs = S.designer.msgs.slice(0,-1).map(m => ({ role: m.role, content: m.content }));

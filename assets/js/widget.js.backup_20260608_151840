@@ -46,10 +46,10 @@
   const root = document.createElement('div');
   root.id = 'smw-root';
   root.innerHTML = `
-    <button id="smw-btn" aria-label="Abrir chat Claude IA">
+    <button id="smw-btn" aria-label="Abrir chat ShellMind">
       <div id="smw-btn-brain">${BRAIN}</div>
       <div id="smw-btn-label">
-        <div id="smw-btn-title">Claude IA</div>
+        <div id="smw-btn-title">ShellMind</div>
         <div id="smw-btn-sub">Asistente inteligente</div>
       </div>
       <div id="smw-btn-dot"></div>
@@ -63,7 +63,7 @@
           <div class="smw-header-top">
             <div id="smw-header-brain">${BRAIN}</div>
             <div id="smw-header-info">
-              <div id="smw-header-name">Claude IA</div>
+              <div id="smw-header-name">ShellMind</div>
               <div id="smw-header-site">${SMWidget.siteName}</div>
             </div>
             <div class="smw-header-actions">

@@ -956,4 +956,64 @@ Do NOT discuss internal server details, files, or WordPress administration.";
         return [ 'error' => 'No output from Replicate. Response: ' . substr($raw, 0, 200) ];
     }
 
+
+/* ============================================================
+   DESIGN OPS  (frontend  no tools, no stream  fast JSON)
+   Returns a JSON list of deterministic edit operations that
+   widget.js applies locally as an instant preview.
+   ============================================================ */
+public function design_ops( array $messages, string $page_context = '' ) {
+if ( empty( $this->api_key ) ) return [ 'error' => 'No API key configured.' ];
+
+$system = "You are a web design assistant for a WordPress + Elementor site. "
+. "The user describes a visual change in natural language. "
+. "You MUST respond with ONLY a valid JSON object, no prose, no markdown, no code fences. "
+. "Schema: {\"ops\":[{\"op\":\"style\",\"selector\":\"CSS selector\",\"prop\":\"css-property\",\"value\":\"css-value\"},{\"op\":\"text\",\"selector\":\"CSS selector\",\"value\":\"new text\"}],\"explain\":\"short summary in the user's language\"}. "
+. "Only use op types 'style' and 'text'. Use precise, real CSS selectors based on the page context. "
+. "Keep selectors conservative (classes/tags visible on the page). If unsure, prefer the most likely visible element. "
+. "Never include explanations outside the JSON.";
+
+if ( $page_context ) {
+$system .= "\n\nPAGE CONTEXT (visible structure):\n" . substr( $page_context, 0, 4000 );
+}
+
+$body = wp_remote_post( $this->api_url, [
+'timeout' => 30,
+'headers' => [
+'Content-Type'      => 'application/json',
+'x-api-key'         => $this->api_key,
+'anthropic-version' => '2023-06-01',
+],
+'body' => wp_json_encode( [
+'model'      => $this->model,
+'max_tokens' => 400,
+'system'     => $system,
+'messages'   => array_slice( $messages, -6 ),
+] ),
+] );
+
+if ( is_wp_error( $body ) ) return [ 'error' => $body->get_error_message() ];
+$decoded = json_decode( wp_remote_retrieve_body( $body ), true );
+if ( ! empty( $decoded['error'] ) ) return [ 'error' => $decoded['error']['message'] ];
+
+$text = '';
+foreach ( $decoded['content'] ?? [] as $block ) {
+if ( ( $block['type'] ?? '' ) === 'text' ) $text .= $block['text'];
+}
+$this->track_usage( $decoded['usage'] ?? [] );
+
+// Strip any accidental code fences and isolate the JSON object.
+$text = trim( $text );
+$text = preg_replace( '/^```(?:json)?|```$/m', '', $text );
+$start = strpos( $text, '{' );
+$end   = strrpos( $text, '}' );
+if ( $start !== false && $end !== false ) {
+$text = substr( $text, $start, $end - $start + 1 );
+}
+$ops = json_decode( $text, true );
+if ( ! is_array( $ops ) || ! isset( $ops['ops'] ) ) {
+return [ 'error' => 'Invalid ops JSON', 'raw' => substr( $text, 0, 300 ) ];
+}
+return [ 'type' => 'ops', 'ops' => $ops['ops'], 'explain' => $ops['explain'] ?? '' ];
+}
 }

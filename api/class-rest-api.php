@@ -52,6 +52,11 @@ class ShellMind_REST_API {
             'callback'            => [ $this, 'handle_widget_chat' ],
             'permission_callback' => '__return_true',
         ] );
+register_rest_route( $ns, '/design-ops', [
+'methods'             => 'POST',
+'callback'            => [ $this, 'handle_design_ops' ],
+'permission_callback' => '__return_true',
+] );
 
         register_rest_route( $ns, '/tokens', [
             'methods'             => 'GET',
@@ -199,6 +204,20 @@ class ShellMind_REST_API {
         return rest_ensure_response( $result );
     }
 
+
+public function handle_design_ops( WP_REST_Request $req ) {
+$messages = $req->get_param( 'messages' );
+$context  = $req->get_param( 'context' );
+if ( ! is_array( $messages ) || empty( $messages ) ) {
+return new WP_Error( 'bad_request', 'messages[] required.', [ 'status' => 400 ] );
+}
+$claude   = new ShellMind_Claude_API();
+$response = $claude->design_ops( $messages, is_string( $context ) ? $context : '' );
+if ( isset( $response['error'] ) ) {
+return new WP_Error( 'claude_error', $response['error'], [ 'status' => 500 ] );
+}
+return rest_ensure_response( $response );
+}
     public function handle_widget_chat( WP_REST_Request $req ) {
         $ip   = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $key  = 'sm_rl_' . md5( $ip );
