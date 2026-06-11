@@ -644,7 +644,16 @@ class ShellMind_Claude_API {
             array_slice( get_option( 'active_plugins', [] ), 0, 15 )
         ) );
 
-        return <<<PROMPT
+        $project_context = '';
+        $claude_md = SHELLMIND_PATH . 'CLAUDE.md';
+        if ( is_readable( $claude_md ) ) {
+            $md = trim( (string) file_get_contents( $claude_md ) );
+            if ( '' !== $md ) {
+                $project_context = "\n\n## PROJECT CONTEXT (CLAUDE.md)\n" . $md;
+            }
+        }
+
+        $prompt = <<<PROMPT
 You are ShellMind, an expert WordPress server assistant embedded inside the WordPress admin.
 
 ## SERVER CONTEXT
@@ -674,6 +683,8 @@ You are ShellMind, an expert WordPress server assistant embedded inside the Word
 - Only access paths inside {$root} or wp-content.
 - Be direct and concise  this is a developer tool.
 PROMPT;
+
+        return $prompt . $project_context;
     }
 
     /* ==============================================================

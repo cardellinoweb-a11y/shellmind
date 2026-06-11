@@ -41,10 +41,13 @@ assets/
 CLAUDE.md                          # ESTE archivo (contexto persistente)
 
 ## Tools del agente
-- read_file         - leer un archivo del servidor
-- list_directory    - listar contenido de un directorio
-- propose_file_edit - proponer un diff (requiere confirmacion del usuario antes de aplicar)
-- generate_image    - generar imagen con Flux/Replicate
+- read_file              - leer un archivo del servidor
+- list_directory         - listar contenido de un directorio
+- propose_file_edit      - proponer un diff (confirmacion del usuario antes de aplicar)
+- generate_image         - generar imagen con Flux/Replicate
+- list_pages             - listar paginas de WP con sus post_ids
+- read_elementor_page    - leer el JSON de widgets Elementor de una pagina
+- propose_elementor_edit - proponer edicion Elementor en DB (confirmacion del usuario)
 
 ## Reglas de comportamiento (IMPORTANTE)
 - SIEMPRE proponer el cambio como diff y esperar confirmacion antes de escribir.
@@ -61,6 +64,6 @@ CLAUDE.md                          # ESTE archivo (contexto persistente)
   SHELLMIND_VERSION fija) para ver cambios al instante. Purgar SpeedyCache al desarrollar.
 
 ## Pendientes / notas
-- El header del plugin dice 0.3.0 pero SHELLMIND_VERSION = 0.5.2 -> unificar.
-- build_system_prompt() deberia inyectar este CLAUDE.md en el system prompt.
-- Limpiar .bak del repo (widget.js.bak, class-claude-api.php.bak_*) y el dir raro {includes,api,admin}.
+- generate_image existe como tool pero no esta documentada en el system prompt -> agregar linea.
+- widget.js actual (714 lineas) es MAS NUEVO que widget.js.backup_20260608 (391) -> el backup es solo referencia.
+- PLAN.md tiene el roadmap por fases; DEVLOG.md el diario de sesiones. Actualizar ambos al cerrar cada sesion.

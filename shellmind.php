@@ -3,7 +3,7 @@
  * Plugin Name: ShellMind
  * Plugin URI:  https://shellmind.io
  * Description: AI-powered server terminal for WordPress. Chat with Claude to read, edit, and manage your server files — with confirmation before every change.
- * Version:     0.3.0
+ * Version:     0.6.0
  * Author:      ShellMind
  * License:     GPL v2 or later
  * Text Domain: shellmind
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'SHELLMIND_VERSION', '0.5.2' );
+define( 'SHELLMIND_VERSION', '0.6.0' );
 define( 'SHELLMIND_PATH',       plugin_dir_path( __FILE__ ) );
 define( 'SHELLMIND_URL',        plugin_dir_url( __FILE__ ) );
 define( 'SHELLMIND_BACKUP_DIR', WP_CONTENT_DIR . '/shellmind-backups/' );

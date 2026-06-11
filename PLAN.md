@@ -2,12 +2,12 @@
 > Actualizar al cerrar cada sesión. [x] = hecho, [~] = a medias
 
 ## Fase 1 — Higiene (1-2 días)
-- [ ] Unificar versión a 0.6.0 (header de shellmind.php + SHELLMIND_VERSION)
-- [ ] .gitignore (error_log, *.bak, backups)
-- [ ] Limpiar .bak y dir {includes,api,admin} del repo
-- [ ] Quitar error_log del repo
-- [ ] build_system_prompt() inyecta CLAUDE.md
-- [ ] Crear DEVLOG.md y flujo de cierre de sesión
+- [x] Unificar versión a 0.6.0 (header de shellmind.php + SHELLMIND_VERSION)
+- [x] .gitignore (error_log, *.bak, backups)
+- [x] Limpiar .bak y dir {includes,api,admin} del repo
+- [x] Quitar error_log del repo
+- [x] build_system_prompt() inyecta CLAUDE.md
+- [x] Crear DEVLOG.md y flujo de cierre de sesión
 
 ## Fase 2 — Modo Diseñador completo (3-5 días)
 - [ ] Preview por inyección de <style> en vivo (aplicar/descartar)
