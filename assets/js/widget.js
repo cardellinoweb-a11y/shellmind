@@ -34,7 +34,7 @@ const SEND = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke
 /* ── State ──────────────────────────────────────────── */
 const S = {
   visitor: { msgs: [], busy: false },
-  designer: { msgs: [], busy: false, edit: null, preview: null },
+  designer: { msgs: [], busy: false, edit: null, preview: null, lastOps: null },
   mode: 'visitor', // 'visitor' | 'designer'
   isAdmin: SMWidget.isAdmin === '1',
   sesIn: 0, sesTot: 0,
@@ -346,6 +346,44 @@ async function sendMsg() {
     st.textContent=css;
   }
   function clearPreview(){ var st=document.getElementById('smw-preview-style'); if(st) st.textContent=''; }
+  async function publishOps(btn){
+    var ops=S.designer.lastOps||window.__smwLastOps;
+    if(!ops||!ops.length){ addSys('No hay cambios pendientes para publicar'); return; }
+    if(btn){ btn.disabled=true; btn.textContent='Publicando\u2026'; }
+    try{
+      var r=await fetch(SMWidget.restUrl+'publish-css',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-WP-Nonce':SMWidget.nonce},
+        body:JSON.stringify({ ops: ops })
+      });
+      var d=await r.json();
+      if(r.ok && d && d.success){
+        var msg='\u2713 Publicado en Additional CSS \u2014 backup: '+(d.backup||'');
+        if(d.skipped_text){ msg+=' ('+d.skipped_text+' cambio(s) de texto quedan solo en preview)'; }
+        addSys(msg);
+        S.designer.lastOps=null; window.__smwLastOps=null;
+        if(btn){ var w=btn.closest('.smw-preview-actions'); if(w) w.remove(); }
+      } else {
+        addSys('\u26a0 Error al publicar: '+((d&&(d.message||d.code))||('HTTP '+r.status)));
+        if(btn){ btn.disabled=false; btn.textContent='Publicar'; }
+      }
+    }catch(e){
+      addSys('\u26a0 Error: '+e.message);
+      if(btn){ btn.disabled=false; btn.textContent='Publicar'; }
+    }
+  }
+  document.addEventListener('click', function(e){
+    var t=e.target;
+    if(!t || !t.closest) return;
+    var pub=t.closest('.smw-pv-pub');
+    if(pub){ publishOps(pub); return; }
+    var rej=t.closest('.smw-pv-rej');
+    if(rej){
+      clearPreview(); S.designer.lastOps=null; window.__smwLastOps=null;
+      var w=rej.closest('.smw-preview-actions'); if(w) w.remove();
+      addSys('\u21a9 Preview descartado');
+    }
+  });
   async function sendDesignOps(userText, typingEl){
     var msgs=S.designer.msgs.map(function(m){return {role:m.role,content:m.content};});
     var resp=await fetch(SMWidget.restUrl + 'design-ops', {
@@ -359,7 +397,15 @@ async function sendMsg() {
     if(data && data.ops){
       applyOps(data.ops);
       window.__smwLastOps=data.ops;
-      addBubble('bot',(data.explain||'Listo, mira el preview.')+' <div class="smw-preview-actions"><button id="smw-preview-pub">Publicar</button><button id="smw-preview-rej">Descartar</button></div>');
+      S.designer.lastOps=data.ops;
+      var bub=addBubble('bot',(data.explain||'Listo, mira el preview.'));
+      if(bub){
+        var act=document.createElement('div');
+        act.className='smw-preview-actions';
+        act.innerHTML='<button class="smw-preview-btn smw-preview-btn--pub smw-pv-pub">Publicar</button><button class="smw-preview-btn smw-preview-btn--rej smw-pv-rej">Descartar</button>';
+        var bb=bub.querySelector('.smw-bubble'); (bb||bub).appendChild(act);
+        scrollDown();
+      }
       return;
     }
     return streamDesigner(userText, typingEl);

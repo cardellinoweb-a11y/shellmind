@@ -10,10 +10,10 @@
 - [x] Crear DEVLOG.md y flujo de cierre de sesión
 
 ## Fase 2 — Modo Diseñador completo (3-5 días)
-- [ ] Preview por inyección de <style> en vivo (aplicar/descartar)
+- [x] Preview por inyección de <style> en vivo (aplicar/descartar)
 - [ ] Editor CSS manual sin IA (latencia cero)
-- [ ] Modo IA conectado al preview (streaming)
-- [ ] Botón "publicar": escribe widget.css con backup previo
+- [x] Modo IA conectado al preview (design-ops + fallback SSE)
+- [x] Botón "publicar": persiste en Additional CSS con backup previo
 
 ## Fase 3 — Análisis de sitio + SEO (1-2 semanas)
 - [ ] Tool get_site_overview (páginas, posts, productos, tema, plugins)

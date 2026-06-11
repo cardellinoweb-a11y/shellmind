@@ -1,6 +1,11 @@
 # ShellMind — Devlog de sesiones
 > Entrada nueva ARRIBA al cerrar cada sesión: hecho / a medias / próximo paso / decisiones.
 
+## 2026-06-11 (Fase 2: publicar CSS)
+- Hecho: botones Publicar/Descartar del preview ahora se renderizan (DOM + clases) y funcionan via delegacion. Nuevo endpoint publish-css: convierte ops a CSS sanitizado y persiste en Additional CSS (wp_update_custom_css_post) con backup en shellmind-backups/files/ y audit log. design-ops asegurado: solo manage_options.
+- Pendiente: ops de texto (op=text) quedan solo en preview; persistirlas requiere edicion Elementor. Editor CSS manual sin IA aun no hecho.
+- Proximo paso: probar ciclo completo describir -> preview -> Publicar -> recargar. Despues: editor manual.
+
 ## 2026-06-11 (cierre Fase 1)
 - Hecho: version unificada a 0.6.0. build_system_prompt() ahora inyecta CLAUDE.md como PROJECT CONTEXT. CLAUDE.md actualizado (7 tools reales incl. Elementor, pendientes al dia). PLAN.md: Fase 1 completa.
 - Verificado: widget.js actual tiene 714 lineas (mas nuevo que el backup de 391). Repo limpio.

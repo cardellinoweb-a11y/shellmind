@@ -55,7 +55,12 @@ class ShellMind_REST_API {
 register_rest_route( $ns, '/design-ops', [
 'methods'             => 'POST',
 'callback'            => [ $this, 'handle_design_ops' ],
-'permission_callback' => '__return_true',
+'permission_callback' => function () { return current_user_can( 'manage_options' ); },
+] );
+register_rest_route( $ns, '/publish-css', [
+'methods'             => 'POST',
+'callback'            => [ $this, 'handle_publish_css' ],
+'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 ] );
 
         register_rest_route( $ns, '/tokens', [
@@ -218,6 +223,60 @@ return new WP_Error( 'claude_error', $response['error'], [ 'status' => 500 ] );
 }
 return rest_ensure_response( $response );
 }
+
+    public function handle_publish_css( WP_REST_Request $req ) {
+        $ops = $req->get_param( 'ops' );
+        if ( ! is_array( $ops ) || empty( $ops ) ) {
+            return new WP_Error( 'bad_request', 'ops[] required.', [ 'status' => 400 ] );
+        }
+
+        $css     = '';
+        $skipped = 0;
+        foreach ( $ops as $op ) {
+            if ( ! is_array( $op ) ) { continue; }
+            $type = isset( $op['op'] ) ? $op['op'] : '';
+            if ( 'style' === $type && ! empty( $op['selector'] ) && ! empty( $op['prop'] ) ) {
+                $sel  = trim( wp_strip_all_tags( (string) $op['selector'] ) );
+                $prop = preg_replace( '/[^a-z\-]/', '', strtolower( (string) $op['prop'] ) );
+                $val  = trim( wp_strip_all_tags( (string) ( isset( $op['value'] ) ? $op['value'] : '' ) ) );
+                if ( '' !== $sel && '' !== $prop && '' !== $val
+                     && false === strpos( $sel, '}' ) && false === strpos( $val, '}' )
+                     && false === stripos( $sel . $val, 'expression' ) ) {
+                    $css .= $sel . ' { ' . $prop . ': ' . $val . ' !important; }' . "\n";
+                } else {
+                    $skipped++;
+                }
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ( '' === $css ) {
+            return new WP_Error( 'no_css', 'No publishable style ops.', [ 'status' => 400 ] );
+        }
+
+        $current = (string) wp_get_custom_css();
+
+        $backup_dir = SHELLMIND_BACKUP_DIR . 'files/';
+        if ( ! file_exists( $backup_dir ) ) { wp_mkdir_p( $backup_dir ); }
+        $backup_name = 'custom-css-' . gmdate( 'Ymd-His' ) . '.css';
+        file_put_contents( $backup_dir . $backup_name, $current );
+
+        $block  = "\n/* ShellMind " . gmdate( 'Y-m-d H:i' ) . " */\n" . $css;
+        $result = wp_update_custom_css_post( $current . $block );
+        if ( is_wp_error( $result ) ) {
+            return new WP_Error( 'css_save_failed', $result->get_error_message(), [ 'status' => 500 ] );
+        }
+
+        $this->audit( 'publish_css', [ 'ops' => count( $ops ), 'skipped' => $skipped, 'backup' => $backup_name ] );
+
+        return rest_ensure_response( [
+            'success'      => true,
+            'backup'       => $backup_name,
+            'skipped_text' => $skipped,
+        ] );
+    }
+
     public function handle_widget_chat( WP_REST_Request $req ) {
         $ip   = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $key  = 'sm_rl_' . md5( $ip );
