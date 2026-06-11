@@ -3,3 +3,5 @@ error_log
 *.bak_*
 wp-content/shellmind-backups/
 .DS_Store
+*.backup_*
+*.empty_*
